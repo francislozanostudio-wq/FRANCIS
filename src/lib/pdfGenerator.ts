@@ -17,6 +17,14 @@ export const generateBookingPDF = async (bookingData: BookingData) => {
     const studioPhone = studioSettings?.studio_phone || '(615) 555-NAIL';
     const studioEmail = studioSettings?.studio_email || 'hello@francislozanostudio.com';
     const websiteUrl = studioSettings?.website_url || 'https://francislozanostudio.com';
+    
+    // Get location configuration
+    const locationConfig = studioSettings?.location_config;
+    const fullAddress = locationConfig?.fullAddress || '';
+    const displayAddress = locationConfig?.displayAddress || 'Private Home Studio, Nashville, Tennessee';
+    const googleMapsLink = locationConfig?.googleMapsLink || '';
+    const parkingInstructions = locationConfig?.parkingInstructions || '';
+    const accessInstructions = locationConfig?.accessInstructions || '';
 
     // Create new PDF document
     const doc = new jsPDF();
