@@ -30,6 +30,8 @@ interface BookingEmailData {
     client_phone: string;
     confirmation_number: string;
     notes?: string;
+    selected_add_ons?: any[];
+    add_ons_total?: number;
   };
   hoursUntilAppointment?: number;
   adminEmail?: string;
@@ -137,8 +139,8 @@ const generateEmailHTML = (data: BookingEmailData) => {
 
   // Use studio config from database or fallback to defaults
   const studioName = studioConfig?.studioName || 'Francis Lozano Studio';
-  const studioPhone = studioConfig?.studioPhone || '(615) 555-NAIL';
-  const studioEmail = studioConfig?.studioEmail || 'hello@francislozanostudio.com';
+  const studioPhone = studioConfig?.studioPhone || '(+1 737-378-5755';
+  const studioEmail = studioConfig?.studioEmail || 'francislozanostudio@gmail.com';
   const websiteUrl = studioConfig?.websiteUrl || 'https://francislozanostudio.com';
 
   const locationSection = generateLocationSection(locationConfig);
@@ -206,9 +208,30 @@ const generateEmailHTML = (data: BookingEmailData) => {
                   <span class="detail-value">${booking.appointment_time}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Investment:</span>
+                  <span class="detail-label">Service Price:</span>
                   <span class="detail-value">$${booking.service_price}</span>
                 </div>
+                ${booking.selected_add_ons && booking.selected_add_ons.length > 0 ? `
+                <div class="detail-row">
+                  <span class="detail-label">Add-Ons:</span>
+                  <span class="detail-value">
+                    ${booking.selected_add_ons.map((addOn: any) => `${addOn.name} (+$${addOn.price})`).join(', ')}
+                  </span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Add-Ons Total:</span>
+                  <span class="detail-value">+$${booking.add_ons_total?.toFixed(2) || '0.00'}</span>
+                </div>
+                <div class="detail-row" style="border-top: 2px solid #FFD700; padding-top: 10px; margin-top: 5px;">
+                  <span class="detail-label"><strong>Total Investment:</strong></span>
+                  <span class="detail-value highlight"><strong>$${(booking.service_price + (booking.add_ons_total || 0)).toFixed(2)}</strong></span>
+                </div>
+                ` : `
+                <div class="detail-row">
+                  <span class="detail-label">Total Investment:</span>
+                  <span class="detail-value">$${booking.service_price}</span>
+                </div>
+                `}
                 ${booking.notes ? `
                 <div class="detail-row">
                   <span class="detail-label">Your Notes:</span>
@@ -224,7 +247,7 @@ const generateEmailHTML = (data: BookingEmailData) => {
                 <li>Please arrive with clean, polish-free nails</li>
                 <li>Arrive 5 minutes early for check-in</li>
                 <li>Bring inspiration photos if you have specific designs in mind</li>
-                <li>Payment due at time of service (Cash, Venmo, Zelle, Cards accepted)</li>
+                <li>Payment due at time of service: <strong>$${(booking.service_price + (booking.add_ons_total || 0)).toFixed(2)}</strong> (Cash, Venmo, Zelle, Cards accepted)</li>
                 <li>Please reschedule if feeling unwell (48hr notice required)</li>
               </ul>
               
@@ -287,6 +310,18 @@ const generateEmailHTML = (data: BookingEmailData) => {
                   <span class="detail-label">Confirmation:</span>
                   <span class="detail-value">#${booking.confirmation_number}</span>
                 </div>
+                <div class="detail-row">
+                  <span class="detail-label">Total Cost:</span>
+                  <span class="detail-value highlight">$${(booking.service_price + (booking.add_ons_total || 0)).toFixed(2)}</span>
+                </div>
+                ${booking.selected_add_ons && booking.selected_add_ons.length > 0 ? `
+                <div class="detail-row">
+                  <span class="detail-label">Add-Ons:</span>
+                  <span class="detail-value">
+                    ${booking.selected_add_ons.map((addOn: any) => addOn.name).join(', ')}
+                  </span>
+                </div>
+                ` : ''}
               </div>
               
               ${locationSection}
@@ -295,7 +330,7 @@ const generateEmailHTML = (data: BookingEmailData) => {
               <ul>
                 <li>✅ Come with clean, polish-free nails</li>
                 <li>✅ Arrive 5 minutes early</li>
-                <li>✅ Bring payment for $${booking.service_price}</li>
+                <li>✅ Bring payment for <strong>$${(booking.service_price + (booking.add_ons_total || 0)).toFixed(2)}</strong></li>
                 <li>✅ Bring inspiration photos if desired</li>
               </ul>
               
@@ -351,8 +386,16 @@ const generateEmailHTML = (data: BookingEmailData) => {
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Total Cost:</span>
-                  <span class="detail-value">$${booking.service_price}</span>
+                  <span class="detail-value">$${(booking.service_price + (booking.add_ons_total || 0)).toFixed(2)}</span>
                 </div>
+                ${booking.selected_add_ons && booking.selected_add_ons.length > 0 ? `
+                <div class="detail-row">
+                  <span class="detail-label">Add-Ons:</span>
+                  <span class="detail-value">
+                    ${booking.selected_add_ons.map((addOn: any) => addOn.name).join(', ')}
+                  </span>
+                </div>
+                ` : ''}
               </div>
               
               <div class="location-section">
@@ -434,9 +477,17 @@ const generateEmailHTML = (data: BookingEmailData) => {
                   <span class="detail-value">#${booking.confirmation_number}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Investment:</span>
-                  <span class="detail-value">$${booking.service_price}</span>
+                  <span class="detail-label">Total Cost:</span>
+                  <span class="detail-value">$${(booking.service_price + (booking.add_ons_total || 0)).toFixed(2)}</span>
                 </div>
+                ${booking.selected_add_ons && booking.selected_add_ons.length > 0 ? `
+                <div class="detail-row">
+                  <span class="detail-label">Add-Ons:</span>
+                  <span class="detail-value">
+                    ${booking.selected_add_ons.map((addOn: any) => addOn.name).join(', ')}
+                  </span>
+                </div>
+                ` : ''}
               </div>
               
               ${locationSection}
@@ -445,7 +496,7 @@ const generateEmailHTML = (data: BookingEmailData) => {
               <ul>
                 <li>✅ Come with clean, polish-free nails</li>
                 <li>✅ Arrive 5 minutes early</li>
-                <li>✅ Bring payment for $${booking.service_price}</li>
+                <li>✅ Bring payment for <strong>$${(booking.service_price + (booking.add_ons_total || 0)).toFixed(2)}</strong></li>
                 <li>✅ Bring inspiration photos if desired</li>
               </ul>
               
@@ -514,9 +565,30 @@ const generateEmailHTML = (data: BookingEmailData) => {
                   <span class="detail-value">${formattedDate} at ${booking.appointment_time}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Price:</span>
+                  <span class="detail-label">Service Price:</span>
                   <span class="detail-value">$${booking.service_price}</span>
                 </div>
+                ${booking.selected_add_ons && booking.selected_add_ons.length > 0 ? `
+                <div class="detail-row">
+                  <span class="detail-label">Add-Ons:</span>
+                  <span class="detail-value">
+                    ${booking.selected_add_ons.map((addOn: any) => `${addOn.name} (+$${addOn.price})`).join(', ')}
+                  </span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Add-Ons Total:</span>
+                  <span class="detail-value">+$${booking.add_ons_total?.toFixed(2) || '0.00'}</span>
+                </div>
+                <div class="detail-row" style="border-top: 2px solid #FFD700; padding-top: 10px; margin-top: 5px;">
+                  <span class="detail-label"><strong>Total Price:</strong></span>
+                  <span class="detail-value highlight"><strong>$${(booking.service_price + (booking.add_ons_total || 0)).toFixed(2)}</strong></span>
+                </div>
+                ` : `
+                <div class="detail-row">
+                  <span class="detail-label">Total Price:</span>
+                  <span class="detail-value">$${booking.service_price}</span>
+                </div>
+                `}
                 ${booking.notes ? `
                 <div class="detail-row">
                   <span class="detail-label">Client Notes:</span>
@@ -638,8 +710,8 @@ Deno.serve(async (req: Request) => {
     // Use database studio config, fallback to request data, then defaults
     const finalStudioConfig = dbStudioConfig || requestData.studioConfig || {
       studioName: 'Francis Lozano Studio',
-      studioPhone: '(615) 555-NAIL',
-      studioEmail: 'hello@francislozanostudio.com',
+      studioPhone: '(+1 737-378-5755',
+      studioEmail: 'francislozanostudio@gmail.com',
       websiteUrl: 'https://francislozanostudio.com'
     };
 
@@ -675,7 +747,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const emailResults = [];
-    const senderEmail = Deno.env.get('SENDER_EMAIL') || finalStudioConfig.studioEmail || 'hello@francislozanostudio.com';
+    const senderEmail = Deno.env.get('SENDER_EMAIL') || finalStudioConfig.studioEmail || 'francislozanostudio@gmail.com';
     const senderName = finalStudioConfig.studioName || 'Francis Lozano Studio';
 
     // Send client email for all types except admin-notification

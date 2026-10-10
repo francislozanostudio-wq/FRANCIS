@@ -66,6 +66,7 @@ interface RecentBooking {
   service_price: number;
   confirmation_number: string;
   created_at: string;
+  notes?: string;
 }
 
 interface RecentMessage {
@@ -285,7 +286,7 @@ const AdminDashboard = () => {
     <AdminLayout>
       <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-3 sm:gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div>
             <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground flex items-center">
               <Activity className="mr-2 sm:mr-3 text-accent" size={28} />
@@ -295,8 +296,19 @@ const AdminDashboard = () => {
               Complete overview of your nail studio business performance
             </p>
           </div>
-          <div className="text-xs sm:text-sm text-muted-foreground">
-            Last updated: {format(new Date(), 'PPP p')}
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+              <Link to="/admin/availability">
+                <Clock className="w-4 h-4 mr-1.5" />
+                Schedule & Hours
+              </Link>
+            </Button>
+            <Button asChild size="sm" className="bg-accent text-accent-foreground">
+              <Link to="/admin/bookings">
+                <Calendar className="w-4 h-4 mr-1.5" />
+                View Bookings
+              </Link>
+            </Button>
           </div>
         </div>
 
@@ -636,10 +648,10 @@ const AdminDashboard = () => {
                     {recentBookings.map((booking) => (
                       <Card key={booking.id} className="bg-background border-border">
                         <CardContent className="p-4">
-                          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0">
-                            <div className="flex-1 space-y-2">
+                          <div className="flex flex-col space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                               <div className="flex items-center space-x-3">
-                                <h3 className="font-semibold text-card-foreground">{booking.client_name}</h3>
+                                <h3 className="font-semibold text-card-foreground text-base">{booking.service_name}</h3>
                                 <Badge className={getStatusColor(booking.status)}>
                                   <div className="flex items-center space-x-1">
                                     {getStatusIcon(booking.status)}
@@ -647,33 +659,52 @@ const AdminDashboard = () => {
                                   </div>
                                 </Badge>
                               </div>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                                <div className="flex items-center text-muted-foreground">
-                                  <Package className="mr-2" size={14} />
-                                  <span>{booking.service_name}</span>
-                                </div>
-                                <div className="flex items-center text-muted-foreground">
-                                  <Calendar className="mr-2" size={14} />
-                                  <span>{format(new Date(booking.appointment_date), 'MMM dd')} at {booking.appointment_time}</span>
-                                </div>
-                                <div className="flex items-center text-muted-foreground">
-                                  <Mail className="mr-2" size={14} />
-                                  <span>{booking.client_email}</span>
-                                </div>
-                                <div className="flex items-center text-muted-foreground">
-                                  <Phone className="mr-2" size={14} />
-                                  <span>{booking.client_phone}</span>
-                                </div>
+                              <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
+                                <span className="font-mono text-xs">#{booking.confirmation_number}</span>
+                                <span className="font-semibold text-card-foreground text-base">${booking.service_price}</span>
                               </div>
                             </div>
                             
-                            <div className="text-right space-y-1">
-                              <p className="font-semibold text-card-foreground text-lg">${booking.service_price}</p>
-                              <p className="text-xs text-muted-foreground">#{booking.confirmation_number}</p>
-                              <p className="text-xs text-muted-foreground">
-                                Booked {format(new Date(booking.created_at), 'MMM dd')}
-                              </p>
+                            <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
+                              <Calendar className="mr-2 text-accent" size={14} />
+                              <span className="font-medium text-foreground">
+                                {format(new Date(booking.appointment_date), 'EEEE, MMM dd')} at {booking.appointment_time}
+                              </span>
+                            </div>
+
+                            {/* Dedicated Client Information Card */}
+                            <div className="p-3 bg-muted/40 rounded-xl border border-border/70 space-y-2 text-xs sm:text-sm">
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-accent uppercase tracking-wider">
+                                <Users size={13} />
+                                <span>Client Information</span>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div className="flex items-center text-card-foreground">
+                                  <span className="text-muted-foreground text-xs mr-1">Name:</span>
+                                  <span className="font-semibold truncate">{booking.client_name}</span>
+                                </div>
+                                <div className="flex items-center text-muted-foreground">
+                                  <Phone size={12} className="mr-1 text-accent flex-shrink-0" />
+                                  <a href={`tel:${booking.client_phone}`} className="hover:text-accent hover:underline truncate">
+                                    {booking.client_phone}
+                                  </a>
+                                </div>
+                                <div className="flex items-center text-muted-foreground">
+                                  <Mail size={12} className="mr-1 text-accent flex-shrink-0" />
+                                  <a href={`mailto:${booking.client_email}`} className="hover:text-accent hover:underline truncate">
+                                    {booking.client_email}
+                                  </a>
+                                </div>
+                              </div>
+                              {booking.notes && (
+                                <div className="pt-1.5 border-t border-border/50 text-xs flex items-start gap-1.5">
+                                  <MessageSquare size={12} className="text-accent mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <span className="font-medium text-card-foreground mr-1">Notes:</span>
+                                    <span className="text-muted-foreground">{booking.notes}</span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </CardContent>

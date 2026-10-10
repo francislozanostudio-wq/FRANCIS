@@ -1,99 +1,49 @@
-import { Calendar, Clock, CreditCard, Shield } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Layout from '@/components/layout/Layout';
 import { Link } from 'react-router-dom';
-import { MultiStepBookingForm } from '@/components/booking/MultiStepBookingForm';
-import { useState, useEffect } from 'react';
-import { getStudioSettings, subscribeToStudioSettings, type StudioSettings } from '@/lib/studioService';
+import { ExpressBookingForm } from '@/components/booking/ExpressBookingForm';
 import { useTranslations } from '@/lib/translations';
 
 const Booking = () => {
-  const [studioSettings, setStudioSettings] = useState<StudioSettings | null>(null);
   const { t } = useTranslations();
-
-  useEffect(() => {
-    // Load initial studio settings
-    const loadStudioSettings = async () => {
-      const settings = await getStudioSettings();
-      setStudioSettings(settings);
-    };
-    loadStudioSettings();
-
-    // Set up real-time subscription
-    const subscription = subscribeToStudioSettings((settings) => {
-      setStudioSettings(settings);
-    });
-
-    return () => {
-      if (subscription) {
-        subscription.unsubscribe();
-      }
-    };
-  }, []);
-
-  const bookingSteps = [
-    {
-      icon: Calendar,
-      title: t('booking.select_service', 'Select Your Service'),
-      description: 'Choose from our menu of luxury nail services and add-ons to create your perfect appointment.'
-    },
-    {
-      icon: Clock,
-      title: t('booking.pick_time', 'Pick Your Time'),
-      description: 'Select from available appointment slots that work with your schedule.'
-    },
-    {
-      icon: CreditCard,
-      title: t('booking.secure_deposit', 'Secure with Deposit'),
-      description: '50% deposit secures your appointment and is applied to your final service cost.'
-    },
-    {
-      icon: Shield,
-      title: t('booking.confirmation', 'Confirmation & Prep'),
-      description: 'Receive confirmation with studio address and preparation instructions for your visit.'
-    }
-  ];
 
   const policies = [
     {
-      title: 'Deposits & Payment',
+      title: 'Depósito & Reserva ($20)',
       items: [
-        '50% deposit required to secure all appointments',
-        'Deposits are non-refundable but transferable with 48hr notice',
-        'Remaining balance due at appointment completion',
-        'Cash, Venmo, Zelle, and major cards accepted',
-        'Gratuity is appreciated but never required'
+        'Se requiere un depósito de $20 para asegurar cualquier cita.',
+        'La cita no queda definitivamente reservada hasta cumplir las condiciones de reserva.',
+        'El balance restante se abona al finalizar el servicio en el estudio.',
+        'Se acepta efectivo, Zelle, Venmo y tarjetas principales.'
       ]
     },
     {
-      title: 'Cancellation & Rescheduling',
+      title: 'Horario & Puntualidad',
       items: [
-        '48-hour advance notice required for changes',
-        'Same-day cancellations forfeit entire deposit',
-        'No-shows forfeit deposit and may be declined future bookings',
-        'Emergency situations evaluated case-by-case',
-        'Rescheduling available based on availability'
+        'Atendemos de Lunes a Sábado en dos bloques:',
+        'Mañana: 8:30 a. m. – 1:30 p. m. | Tarde: 3:00 p. m. – ~7:00 p. m.',
+        'Pausa estricta: 1:30 p. m. a 3:00 p. m. (no se agendan citas en este horario).',
+        'Domingos cerrado. Por favor llegar 5 minutos antes de su hora.'
       ]
     },
     {
-      title: 'Appointment Guidelines',
+      title: 'Builder Gel & Uñas Naturales',
       items: [
-        'Arrive 5 minutes early for check-in',
-        'Late arrivals may result in shortened service time',
-        'Full studio address provided upon confirmation',
-        'Please come with clean, polish-free nails',
-        'Reschedule if feeling unwell for everyone\'s safety'
+        'No realizo mantenimiento ni refill de Builder Gel.',
+        'En clientas recurrentes se retira el 80% del producto anterior y se coloca material nuevo.',
+        'Si tienes producto previo para retirar, indícalo al reservar (duración: 3 horas vs 2 horas set nuevo).',
+        'No ofrecemos servicios en acrílico ni Polygel.'
       ]
     },
     {
-      title: 'Fills & Touch-Ups',
+      title: 'Keratina & Diseños Especiales',
       items: [
-        'Fills from other salons require removal fee ($25-45)',
-        '2-week guarantee on all gel and acrylic services',
-        'Free minor adjustments within 3 days of service',
-        'Fill appointments available every 2-3 weeks',
-        'Nail art touch-ups evaluated individually'
+        'Keratina desde $150: duración de 3 a 5 horas según largo y volumen del cabello.',
+        'El precio final de Nail Art, 3D y efectos especiales varía según complejidad.',
+        'Los precios "desde" son iniciales y pueden variar según largo y diseño.',
+        'Agradecemos enviar una foto de referencia para confirmar cotizaciones personalizadas.'
       ]
     }
   ];
@@ -120,60 +70,35 @@ const Booking = () => {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="bg-background py-20">
+      <section className="bg-background py-8 sm:py-14 md:py-20">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="font-heading text-5xl md:text-6xl font-bold mb-6 text-foreground">
+          <h1 className="font-heading text-3xl sm:text-5xl md:text-6xl font-bold mb-3 sm:mb-6 text-foreground">
             {t('booking.title', 'Book Your Appointment')}
           </h1>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
+          <p className="text-sm sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-3 sm:mb-4 px-2">
             {t('booking.subtitle', "Ready to experience luxury nail artistry? Schedule your private appointment and let's create something beautiful together in my Nashville studio.")}
           </p>
-          <div className="w-24 h-1 bg-gradient-gold mx-auto"></div>
+          <p className="text-xs sm:text-sm text-accent font-medium mb-5 sm:mb-8">Tres pasos rápidos — cuándo, qué servicio y tus datos.</p>
+          <div className="w-16 sm:w-24 h-1 bg-gradient-gold mx-auto rounded-full"></div>
         </div>
       </section>
 
-      {/* Booking Form */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <MultiStepBookingForm />
-
-            {/* Booking Process */}
-            <div className="mb-16">
-              <h2 className="font-heading text-3xl md:text-4xl font-bold text-center text-foreground mb-12">
-                {t('booking.how_booking_works', 'How Booking Works')}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {bookingSteps.map((step, index) => (
-                  <Card key={index} className="text-center hover-lift bg-card border-border">
-                    <CardContent className="p-6">
-                      <div className="w-16 h-16 bg-gradient-gold rounded-full flex items-center justify-center mx-auto mb-4">
-                        <step.icon size={24} className="text-luxury-black" />
-                      </div>
-                      <h3 className="font-heading text-lg font-semibold mb-3 text-card-foreground">
-                        {step.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {step.description}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </div>
+      {/* Express Booking Form */}
+      <section className="py-6 sm:py-12 md:py-16">
+        <div className="container mx-auto px-3 sm:px-4">
+          <ExpressBookingForm />
         </div>
       </section>
 
       {/* Booking Policies */}
-      <section className="py-20 bg-secondary">
+      <section className="py-10 sm:py-16 md:py-20 bg-secondary">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-6">
+            <div className="text-center mb-8 sm:mb-16">
+              <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-6">
                 Booking Policies
               </h2>
-              <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              <p className="text-sm sm:text-lg text-muted-foreground max-w-3xl mx-auto">
                 Please review these important policies before booking your appointment to ensure 
                 a smooth and enjoyable experience for everyone.
               </p>
@@ -255,7 +180,11 @@ const Booking = () => {
             experience the difference of truly personalized nail artistry.
           </p>
           <div className="space-x-4">
-            <Button size="lg" className="bg-gradient-gold hover:bg-gradient-gold/90 text-luxury-black font-semibold">
+            <Button 
+              size="lg" 
+              className="bg-gradient-gold hover:bg-gradient-gold/90 text-luxury-black font-semibold"
+              onClick={() => document.getElementById('ex-when')?.scrollIntoView({ behavior: 'smooth' })}
+            >
               <Calendar className="mr-2" size={20} />
               Book Now
             </Button>

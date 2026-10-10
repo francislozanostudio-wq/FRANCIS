@@ -3,10 +3,12 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Calendar, 
+  Clock,
   MessageSquare, 
   Image,
   FileText,
   Package,
+  Star,
   Home,
   Quote,
   Settings,
@@ -53,10 +55,28 @@ const sidebarItems = [
     description: 'Manage appointments'
   },
   {
+    title: 'Schedule & Hours',
+    href: '/admin/availability',
+    icon: Clock,
+    description: 'Business hours & blocked times'
+  },
+  {
     title: 'Services',
     href: '/admin/services',
     icon: Package,
     description: 'Manage service offerings'
+  },
+  {
+    title: 'Service Page',
+    href: '/admin/service-page-settings',
+    icon: FileText,
+    description: 'Edit service page content'
+  },
+  {
+    title: 'Add-Ons',
+    href: '/admin/add-ons',
+    icon: Star,
+    description: 'Manage optional add-ons'
   },
   {
     title: 'Gallery',

@@ -189,6 +189,9 @@ const AdminAbout = () => {
         return;
       }
 
+      // Refresh the data from database
+      await fetchAboutContent();
+      
       setIsEditDialogOpen(false);
       setEditingSection(null);
       toast({
@@ -241,6 +244,9 @@ const AdminAbout = () => {
         return;
       }
 
+      // Refresh the data from database
+      await fetchAboutContent();
+      
       // Reset form
       setNewSection({
         section: '',
@@ -286,6 +292,9 @@ const AdminAbout = () => {
         return;
       }
 
+      // Refresh the data from database
+      await fetchAboutContent();
+      
       toast({
         title: 'Success',
         description: 'Section deleted successfully.',
@@ -320,6 +329,9 @@ const AdminAbout = () => {
         return;
       }
 
+      // Refresh the data from database
+      await fetchAboutContent();
+      
       toast({
         title: 'Success',
         description: `Section ${!section.is_active ? 'shown' : 'hidden'} successfully.`,

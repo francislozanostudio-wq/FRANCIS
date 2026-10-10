@@ -15,12 +15,18 @@ interface ReviewStepProps {
 }
 
 export function ReviewStep({ bookingData, onConfirm, onPrev, onEdit, isSubmitting = false }: ReviewStepProps) {
-  const { service, date, time, clientInfo } = bookingData;
-  const { t } = useTranslations();
+  const { selectedServices, selectedAddOns, date, time, clientInfo } = bookingData;
+  const { t, language, translateByText } = useTranslations();
   
-  if (!service || !date || !time || !clientInfo || !clientInfo.fullName || !clientInfo.email || !clientInfo.phone) {
+  if (!selectedServices.length || !date || !time || !clientInfo || !clientInfo.fullName || !clientInfo.email || !clientInfo.phone) {
     return <div>Incomplete booking data</div>;
   }
+
+  // Calculate totals
+  const servicesTotal = selectedServices.reduce((sum, service) => sum + service.price, 0);
+  const servicesDurationTotal = selectedServices.reduce((sum, service) => sum + service.duration, 0);
+  const addOnsTotal = (selectedAddOns || []).reduce((sum, addOn) => sum + addOn.price, 0);
+  const grandTotal = servicesTotal + addOnsTotal;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -53,13 +59,17 @@ export function ReviewStep({ bookingData, onConfirm, onPrev, onEdit, isSubmittin
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div>
-              <p className="font-semibold text-card-foreground">{service.name}</p>
-              <p className="text-sm text-muted-foreground">Duration: {service.duration} minutes</p>
+            <div className="space-y-1">
+              {selectedServices.map((service) => (
+                <p key={service.id} className="font-semibold text-card-foreground">
+                  {translateByText(service.name)}
+                </p>
+              ))}
+              <p className="text-sm text-muted-foreground">Duration: {servicesDurationTotal} minutes</p>
             </div>
             <div className="flex items-center text-accent">
               <DollarSign size={16} className="mr-1" />
-              <span className="font-semibold">${service.price}</span>
+              <span className="font-semibold">${servicesTotal.toFixed(2)}</span>
             </div>
           </CardContent>
         </Card>
@@ -96,7 +106,7 @@ export function ReviewStep({ bookingData, onConfirm, onPrev, onEdit, isSubmittin
               <p className="text-sm text-muted-foreground">
                 Estimated end: {/* Calculate end time based on duration */}
                 {format(
-                  new Date(date.getTime() + service.duration * 60000), 
+                  new Date(date.getTime() + servicesDurationTotal * 60000), 
                   "h:mm a"
                 )}
               </p>
@@ -115,7 +125,7 @@ export function ReviewStep({ bookingData, onConfirm, onPrev, onEdit, isSubmittin
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onEdit(3)}
+                onClick={() => onEdit(4)}
                 className="text-accent hover:text-accent-foreground hover:bg-accent/10"
               >
                 <Edit3 size={14} />
@@ -131,12 +141,49 @@ export function ReviewStep({ bookingData, onConfirm, onPrev, onEdit, isSubmittin
             {clientInfo.notes && (
               <div>
                 <p className="text-xs font-medium text-card-foreground mb-1">Notes:</p>
-                {t('booking.confirm_booking', 'Confirm Booking')}
+                <p className="text-sm text-muted-foreground italic">{clientInfo.notes}</p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Add-Ons Section */}
+      {selectedAddOns && selectedAddOns.length > 0 && (
+        <Card className="bg-accent/5 border-accent/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span className="flex items-center">
+                <DollarSign className="mr-2 text-accent" size={20} />
+                Selected Add-Ons
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onEdit(2)}
+                className="text-accent hover:text-accent-foreground hover:bg-accent/10"
+              >
+                <Edit3 size={14} />
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {selectedAddOns.map((addOn) => (
+                <div key={addOn.id} className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium text-card-foreground">{translateByText(addOn.name)}</p>
+                    {addOn.description && (
+                      <p className="text-xs text-muted-foreground">{translateByText(addOn.description)}</p>
+                    )}
+                  </div>
+                  <span className="font-semibold text-accent">+${addOn.price}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Payment Summary */}
       <Card className="bg-card border-accent/20 shadow-elegant">
@@ -148,16 +195,28 @@ export function ReviewStep({ bookingData, onConfirm, onPrev, onEdit, isSubmittin
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex justify-between items-center">
-            <span className="text-card-foreground">Service Total:</span>
-            <span className="font-semibold">${service.price}</span>
+            <span className="text-card-foreground">Services ({selectedServices.length}):</span>
+            <span className="font-semibold">${servicesTotal.toFixed(2)}</span>
           </div>
+          
+          {selectedAddOns && selectedAddOns.length > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-card-foreground">Add-Ons ({selectedAddOns.length}):</span>
+              <span className="font-semibold">+${addOnsTotal.toFixed(2)}</span>
+            </div>
+          )}
           
           <div className="flex justify-between items-center">
             <span className="text-card-foreground">Duration:</span>
-            <span className="font-semibold">{service.duration} minutes</span>
+            <span className="font-semibold">{servicesDurationTotal} minutes</span>
           </div>
           
           <Separator className="bg-border" />
+          
+          <div className="flex justify-between items-center text-lg">
+            <span className="font-bold text-card-foreground">Total Amount:</span>
+            <span className="font-bold text-accent text-2xl">${grandTotal.toFixed(2)}</span>
+          </div>
           
           <div className="bg-accent/5 border border-accent/20 rounded-lg p-3 mt-4">
             <p className="text-sm text-muted-foreground">

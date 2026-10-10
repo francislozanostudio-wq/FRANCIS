@@ -12,7 +12,8 @@ import {
   Search,
   Filter,
   Move,
-  Package
+  Package,
+  FolderPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,19 +49,20 @@ interface ServiceStats {
   categories: number;
 }
 
-const categories = [
-  { value: 'manicures', label: 'Manicures' },
-  { value: 'pedicures', label: 'Pedicures' },
-  { value: 'extensions', label: 'Extensions' },
-  { value: 'systems', label: 'Nail Systems' },
-  { value: 'nail-art', label: 'Nail Art' },
-  { value: 'add-ons', label: 'Add-Ons' },
-  { value: 'general', label: 'General' }
-];
+interface ServiceCategory {
+  id: string;
+  name: string;
+  slug: string;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 const AdminServices = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [stats, setStats] = useState<ServiceStats>({
     total: 0,
     active: 0,
@@ -73,6 +75,7 @@ const AdminServices = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -86,7 +89,13 @@ const AdminServices = () => {
     is_active: true
   });
 
+  const [newCategory, setNewCategory] = useState({
+    name: '',
+    slug: ''
+  });
+
   useEffect(() => {
+    fetchCategories();
     fetchServices();
     
     // Set up real-time subscription
@@ -100,14 +109,44 @@ const AdminServices = () => {
       )
       .subscribe();
 
+    const categoriesSubscription = supabase
+      .channel('categories-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'service_categories' },
+        () => {
+          fetchCategories();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(servicesSubscription);
+      supabase.removeChannel(categoriesSubscription);
     };
   }, []);
 
   useEffect(() => {
     filterServices();
   }, [services, searchTerm, categoryFilter, statusFilter]);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('service_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching categories:', error);
+        return;
+      }
+
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchServices = async () => {
     try {
@@ -353,6 +392,74 @@ const AdminServices = () => {
     }
   };
 
+  const addCategory = async () => {
+    try {
+      if (!newCategory.name.trim()) {
+        toast({
+          title: 'Missing Information',
+          description: 'Please provide a category name.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      setIsSaving(true);
+
+      // Generate slug from name
+      const slug = newCategory.name.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+      const { error } = await supabase
+        .from('service_categories')
+        .insert({
+          name: newCategory.name,
+          slug: slug,
+          display_order: categories.length + 1,
+          is_active: true
+        });
+
+      if (error) {
+        if (error.code === '23505') { // Unique violation
+          toast({
+            title: 'Error',
+            description: 'A category with this name already exists.',
+            variant: 'destructive',
+          });
+        } else {
+          console.error('Error adding category:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to add category. Please try again.',
+            variant: 'destructive',
+          });
+        }
+        return;
+      }
+
+      // Reset form
+      setNewCategory({ name: '', slug: '' });
+      setIsAddCategoryDialogOpen(false);
+      
+      toast({
+        title: 'Success',
+        description: 'Category added successfully.',
+      });
+
+      // Refresh categories
+      await fetchCategories();
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -410,16 +517,28 @@ const AdminServices = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="new-category">Category</Label>
-                      <Select value={newService.category} onValueChange={(value) => setNewService(prev => ({ ...prev, category: value }))}>
+                      <Select value={newService.category} onValueChange={(value) => {
+                        if (value === '__add_new__') {
+                          setIsAddCategoryDialogOpen(true);
+                        } else {
+                          setNewService(prev => ({ ...prev, category: value }));
+                        }
+                      }}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {categories.map(category => (
-                            <SelectItem key={category.value} value={category.value}>
-                              {category.label}
+                            <SelectItem key={category.slug} value={category.slug}>
+                              {category.name}
                             </SelectItem>
                           ))}
+                          <SelectItem value="__add_new__" className="text-accent font-medium">
+                            <div className="flex items-center">
+                              <FolderPlus className="mr-2 h-4 w-4" />
+                              Add New Category
+                            </div>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -573,8 +692,8 @@ const AdminServices = () => {
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
                     {categories.map(category => (
-                      <SelectItem key={category.value} value={category.value}>
-                        {category.label}
+                      <SelectItem key={category.slug} value={category.slug}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -649,7 +768,7 @@ const AdminServices = () => {
                               {service.is_active ? 'Active' : 'Inactive'}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
-                              {categories.find(c => c.value === service.category)?.label || service.category}
+                              {categories.find(c => c.slug === service.category)?.name || service.category}
                             </Badge>
                           </div>
                           
@@ -744,16 +863,28 @@ const AdminServices = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="edit-category">Category</Label>
-                    <Select value={editingService.category} onValueChange={(value) => setEditingService(prev => prev ? { ...prev, category: value } : null)}>
+                    <Select value={editingService.category} onValueChange={(value) => {
+                      if (value === '__add_new__') {
+                        setIsAddCategoryDialogOpen(true);
+                      } else {
+                        setEditingService(prev => prev ? { ...prev, category: value } : null);
+                      }
+                    }}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {categories.map(category => (
-                          <SelectItem key={category.value} value={category.value}>
-                            {category.label}
+                          <SelectItem key={category.slug} value={category.slug}>
+                            {category.name}
                           </SelectItem>
                         ))}
+                        <SelectItem value="__add_new__" className="text-accent font-medium">
+                          <div className="flex items-center">
+                            <FolderPlus className="mr-2 h-4 w-4" />
+                            Add New Category
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -828,6 +959,66 @@ const AdminServices = () => {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Category Dialog */}
+        <Dialog open={isAddCategoryDialogOpen} onOpenChange={setIsAddCategoryDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-heading text-2xl flex items-center">
+                <FolderPlus className="mr-2 text-accent" size={24} />
+                Add New Category
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="category-name">Category Name</Label>
+                <Input
+                  id="category-name"
+                  placeholder="e.g., Gel Nails, Spa Treatments"
+                  value={newCategory.name}
+                  onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && newCategory.name.trim()) {
+                      addCategory();
+                    }
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter a descriptive name for your new service category
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsAddCategoryDialogOpen(false);
+                    setNewCategory({ name: '', slug: '' });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={addCategory}
+                  disabled={isSaving || !newCategory.name.trim()}
+                  className="bg-gradient-gold hover:bg-gradient-gold/90 text-luxury-black font-semibold"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="mr-2" size={16} />
+                      Add Category
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

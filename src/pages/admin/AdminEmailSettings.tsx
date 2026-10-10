@@ -446,7 +446,7 @@ ${locationConfig.displayAddress || 'Private Studio, Nashville TN'}
         appointment_time: '2:00 PM',
         client_name: 'Test Client',
         client_email: activeAdminEmails[0].email, // Send test to first admin email
-        client_phone: '(615) 555-0123',
+        client_phone: '+1 737-378-5755',
         confirmation_number: 'TEST-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
         notes: 'This is a test email to verify your email configuration and location settings are working properly.',
       };
@@ -624,7 +624,7 @@ ${locationConfig.displayAddress || 'Private Studio, Nashville TN'}
                         <div className="relative">
                           <Input
                             id="studio-email"
-                            placeholder="hello@francislozanostudio.com"
+                            placeholder="francislozanostudio@gmail.com"
                             value={studioSettings.studio_email}
                             onChange={(e) => setStudioSettings(prev => prev ? { ...prev, studio_email: e.target.value } : null)}
                             className="bg-background"
@@ -704,7 +704,7 @@ ${locationConfig.displayAddress || 'Private Studio, Nashville TN'}
                         <Input
                           id="new-email"
                           type="email"
-                          placeholder="admin@francislozanostudio.com"
+                          placeholder="admin@francis_lozano_studio.com"
                           value={newEmail.email}
                           onChange={(e) => setNewEmail(prev => ({ ...prev, email: e.target.value }))}
                         />

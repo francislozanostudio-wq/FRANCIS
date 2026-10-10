@@ -48,8 +48,8 @@ const generateAdminNotificationHTML = (message: ContactMessage, studioConfig?: C
 
   // Use actual studio config or fallback to defaults
   const studioName = studioConfig?.studioName || 'Francis Lozano Studio';
-  const studioPhone = studioConfig?.studioPhone || '(615) 555-NAIL';
-  const studioEmail = studioConfig?.studioEmail || 'hello@francislozanostudio.com';
+  const studioPhone = studioConfig?.studioPhone || '(+1 737-378-5755';
+  const studioEmail = studioConfig?.studioEmail || 'francislozanostudio@gmail.com';
   return `
     <!DOCTYPE html>
     <html>
@@ -255,7 +255,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const senderEmail = Deno.env.get('SENDER_EMAIL') || studioConfig?.studioEmail || 'hello@francislozanostudio.com';
+    const senderEmail = Deno.env.get('SENDER_EMAIL') || studioConfig?.studioEmail || 'francislozanostudio@gmail.com';
     const senderName = studioConfig?.studioName || 'Francis Lozano Studio';
 
     // Send admin notification email to single recipient (called multiple times from frontend)

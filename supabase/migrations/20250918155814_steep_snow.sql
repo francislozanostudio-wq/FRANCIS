@@ -19,8 +19,8 @@
 CREATE TABLE IF NOT EXISTS studio_settings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   studio_name text NOT NULL DEFAULT 'Francis Lozano Studio',
-  studio_phone text NOT NULL DEFAULT '(615) 555-NAIL',
-  studio_email text NOT NULL DEFAULT 'hello@francislozanostudio.com',
+  studio_phone text NOT NULL DEFAULT '(+1 737-378-5755',
+  studio_email text NOT NULL DEFAULT 'francislozanostudio@gmail.com',
   website_url text NOT NULL DEFAULT 'https://francislozanostudio.com',
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
@@ -60,5 +60,5 @@ CREATE TRIGGER update_studio_settings_updated_at
 
 -- Insert default studio settings
 INSERT INTO studio_settings (studio_name, studio_phone, studio_email, website_url)
-VALUES ('Francis Lozano Studio', '(615) 555-NAIL', 'hello@francislozanostudio.com', 'https://francislozanostudio.com')
+VALUES ('Francis Lozano Studio', '(+1 737-378-5755', 'francislozanostudio@gmail.com', 'https://francislozanostudio.com')
 ON CONFLICT DO NOTHING;

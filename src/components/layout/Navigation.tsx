@@ -12,7 +12,7 @@ const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [studioSettings, setStudioSettings] = useState<StudioSettings | null>(null);
   const location = useLocation();
-  const { t } = useTranslations();
+  const { t, language } = useTranslations();
 
   useEffect(() => {
     // Load initial studio settings

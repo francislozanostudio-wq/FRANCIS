@@ -33,7 +33,7 @@ interface ClientInfoStepProps {
 }
 
 export function ClientInfoStep({ clientInfo, onClientInfoSubmit, onNext, onPrev }: ClientInfoStepProps) {
-  const { t } = useTranslations();
+  const { t, language } = useTranslations();
 
   const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
@@ -117,7 +117,7 @@ export function ClientInfoStep({ clientInfo, onClientInfoSubmit, onNext, onPrev 
                     <FormControl>
                       <Input 
                         type="tel"
-                        placeholder="(615) 555-0123" 
+                        placeholder="+1 737-378-5755" 
                         {...field} 
                         className="bg-background/80 border-input hover:border-accent transition-all duration-200 focus:bg-background"
                       />

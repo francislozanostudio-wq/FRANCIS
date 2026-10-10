@@ -15,8 +15,8 @@ interface ConfirmationStepProps {
 }
 
 export function ConfirmationStep({ bookingData, onNewBooking }: ConfirmationStepProps) {
-  const { service, date, time, clientInfo, confirmationNumber } = bookingData;
-  const { t } = useTranslations();
+  const { selectedServices, date, time, clientInfo, confirmationNumber } = bookingData;
+  const { t, language, translateByText } = useTranslations();
   const [studioSettings, setStudioSettings] = useState<StudioSettings | null>(null);
 
   useEffect(() => {
@@ -39,13 +39,18 @@ export function ConfirmationStep({ bookingData, onNewBooking }: ConfirmationStep
     };
   }, []);
   
-  if (!service || !date || !time || !clientInfo || !clientInfo.fullName || !clientInfo.email || !clientInfo.phone || !confirmationNumber) {
+  if (!selectedServices.length || !date || !time || !clientInfo || !clientInfo.fullName || !clientInfo.email || !clientInfo.phone || !confirmationNumber) {
     return <div>Incomplete booking data</div>;
   }
 
+  const servicesTotal = selectedServices.reduce((sum, service) => sum + service.price, 0);
+  const servicesDurationTotal = selectedServices.reduce((sum, service) => sum + service.duration, 0);
+  const addOnsTotal = bookingData.selectedAddOns?.reduce((sum, addOn) => sum + addOn.price, 0) || 0;
+  const grandTotal = servicesTotal + addOnsTotal;
+
   const studioName = studioSettings?.studio_name || 'Francis Lozano Studio';
-  const studioPhone = studioSettings?.studio_phone || '(615) 555-NAIL';
-  const studioEmail = studioSettings?.studio_email || 'hello@francislozanostudio.com';
+  const studioPhone = studioSettings?.studio_phone || '(+1 737-378-5755';
+  const studioEmail = studioSettings?.studio_email || 'francislozanostudio@gmail.com';
 
   const handleDownloadPDF = async () => {
     try {
@@ -87,12 +92,14 @@ export function ConfirmationStep({ bookingData, onNewBooking }: ConfirmationStep
               <div className="flex items-start space-x-3">
                 <CalendarIcon className="text-accent mt-1" size={20} />
                 <div>
-                  <p className="font-semibold text-card-foreground">{service.name}</p>
+                  <p className="font-semibold text-card-foreground">
+                    {selectedServices.map((service) => translateByText(service.name)).join(', ')}
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     {format(date, "PPPP")} at {time}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Duration: {service.duration} minutes
+                    Duration: {servicesDurationTotal} minutes
                   </p>
                 </div>
               </div>
@@ -117,9 +124,24 @@ export function ConfirmationStep({ bookingData, onNewBooking }: ConfirmationStep
                 <div>
                   <p className="font-semibold text-card-foreground">Service Details</p>
                   <p className="text-sm text-muted-foreground">
-                    Total: ${service.price}
+                    Services ({selectedServices.length}): ${servicesTotal.toFixed(2)}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  {bookingData.selectedAddOns && bookingData.selectedAddOns.length > 0 && (
+                    <>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Add-ons: +${addOnsTotal.toFixed(2)}
+                      </p>
+                      <p className="text-sm font-bold text-accent mt-1">
+                        Total: ${grandTotal.toFixed(2)}
+                      </p>
+                    </>
+                  )}
+                  {(!bookingData.selectedAddOns || bookingData.selectedAddOns.length === 0) && (
+                    <p className="text-sm font-bold text-accent mt-1">
+                      Total: ${servicesTotal.toFixed(2)}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
                     Payment due at appointment
                   </p>
                 </div>
@@ -137,6 +159,27 @@ export function ConfirmationStep({ bookingData, onNewBooking }: ConfirmationStep
           </div>
 
           <Separator className="bg-border" />
+
+          {/* Selected Add-Ons if any */}
+          {bookingData.selectedAddOns && bookingData.selectedAddOns.length > 0 && (
+            <>
+              <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+                <h4 className="font-semibold text-card-foreground mb-3 flex items-center">
+                  <Plus className="mr-2 text-accent" size={18} />
+                  Selected Add-Ons ({bookingData.selectedAddOns.length})
+                </h4>
+                <div className="space-y-2">
+                  {bookingData.selectedAddOns.map((addOn) => (
+                    <div key={addOn.id} className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">{translateByText(addOn.name)}</span>
+                      <span className="font-medium text-accent">+${addOn.price}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Separator className="bg-border" />
+            </>
+          )}
 
           {/* Next Steps */}
           <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">

@@ -36,7 +36,7 @@ const Testimonials = () => {
   const [reviewLinks, setReviewLinks] = useState<ReviewLink[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [studioSettings, setStudioSettings] = useState<StudioSettings | null>(null);
-  const { t } = useTranslations();
+  const { t, language, translateByText } = useTranslations();
 
   useEffect(() => {
     fetchTestimonials();
@@ -226,20 +226,20 @@ const Testimonials = () => {
 
                   {/* Testimonial Text */}
                   <blockquote className="text-muted-foreground mb-6 leading-relaxed italic">
-                    "{testimonial.testimonial_text}"
+                    "{translateByText(testimonial.testimonial_text)}"
                   </blockquote>
 
                   {/* Client Info */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-card-foreground">{testimonial.client_name}</p>
+                      <p className="font-semibold text-card-foreground">{translateByText(testimonial.client_name)}</p>
                       {testimonial.client_location && (
-                        <p className="text-sm text-muted-foreground">{testimonial.client_location}</p>
+                        <p className="text-sm text-muted-foreground">{translateByText(testimonial.client_location)}</p>
                       )}
                     </div>
                     {testimonial.service_name && (
                       <div className="text-right">
-                        <p className="text-sm font-medium text-accent">{testimonial.service_name}</p>
+                        <p className="text-sm font-medium text-accent">{translateByText(testimonial.service_name)}</p>
                       </div>
                     )}
                   </div>
@@ -314,7 +314,7 @@ const Testimonials = () => {
               </Button>
               <Button asChild variant="outline" size="lg" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground">
                 <a 
-                  href="https://instagram.com/francislozanostudio" 
+                  href="https://www.instagram.com/francis_lozano_studio" 
                   target="_blank" 
                   rel="noopener noreferrer"
                 >

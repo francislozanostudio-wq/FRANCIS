@@ -13,8 +13,9 @@ import {
 import { useTranslations } from '@/lib/translations';
 
 const timeSlots = [
-  '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
-  '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'
+  '7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
+  // 1:00 PM - 2:00 PM is lunch break (excluded)
+  '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'
 ];
 
 // Simulate some booked slots for realistic demo
@@ -43,14 +44,14 @@ export function DateTimeStep({
 }: DateTimeStepProps) {
   const [tempDate, setTempDate] = useState<Date | undefined>(selectedDate);
   const [tempTime, setTempTime] = useState<string | undefined>(selectedTime);
-  const { t } = useTranslations();
+  const { t, language } = useTranslations();
 
-  // Disable past dates, Sundays (0), and Mondays (1)
+  // Disable past dates and Sundays (0)
   const isDateDisabled = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const dayOfWeek = date.getDay();
-    return date < today || dayOfWeek === 0 || dayOfWeek === 1;
+    return date < today || dayOfWeek === 0; // Only disable Sundays
   };
 
   const getAvailableSlots = (date: Date | undefined) => {
@@ -82,7 +83,7 @@ export function DateTimeStep({
           {t('booking.pick_time', 'Choose Date & Time')}
         </h2>
         <p className="text-muted-foreground">
-          Select your preferred appointment date and time
+          Select your preferred appointment date and time. Available Monday to Saturday, 7:00 AM - 5:00 PM (Lunch: 1:00 PM - 2:00 PM)
         </p>
       </div>
 
@@ -123,7 +124,9 @@ export function DateTimeStep({
             </Popover>
             
             <div className="text-sm text-muted-foreground space-y-1">
-              <p>• Studio closed Sundays & Mondays</p>
+              <p>• Studio closed on Sundays</p>
+              <p>• Hours: 7:00 AM - 5:00 PM (Mon-Sat)</p>
+              <p>• Lunch break: 1:00 PM - 2:00 PM</p>
               <p>• Service duration: {serviceDuration} minutes</p>
             </div>
           </CardContent>

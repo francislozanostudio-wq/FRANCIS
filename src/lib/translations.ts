@@ -71,17 +71,44 @@ export const fetchTranslations = async (): Promise<Translation[]> => {
 // Get translation by key
 export const t = (key: string, fallback?: string): string => {
   const translation = translationsCache[key];
+  const lang = getCurrentLanguage(); // Always get fresh language
   
   if (!translation) {
-    console.warn(`Translation missing for key: ${key}`);
+    if (!fallback) {
+      console.warn(`Translation missing for key: ${key}`);
+    }
     return fallback || key;
   }
 
-  if (currentLanguage === 'es' && translation.spanish_text) {
+  if (lang === 'es' && translation.spanish_text) {
     return translation.spanish_text;
   }
 
   return translation.english_text || fallback || key;
+};
+
+// Get translation by matching English text (for dynamic content from database)
+export const translateByText = (englishText: string | undefined | null): string => {
+  if (!englishText) return '';
+  
+  const lang = getCurrentLanguage();
+  
+  // If English, return as-is
+  if (lang === 'en') {
+    return englishText;
+  }
+  
+  // For Spanish, search for matching translation
+  const matchingTranslation = Object.values(translationsCache).find(
+    translation => translation.english_text?.trim().toLowerCase() === englishText.trim().toLowerCase()
+  );
+  
+  // Return Spanish if found, otherwise return English text
+  if (matchingTranslation && matchingTranslation.spanish_text) {
+    return matchingTranslation.spanish_text;
+  }
+  
+  return englishText;
 };
 
 // Hook for using translations in React components
@@ -90,6 +117,7 @@ import { useState, useEffect } from 'react';
 export const useTranslations = () => {
   const [language, setLanguage] = useState<Language>(getCurrentLanguage());
   const [isLoading, setIsLoading] = useState(true);
+  const [, forceUpdate] = useState({});
 
   useEffect(() => {
     // Initialize translations
@@ -101,6 +129,8 @@ export const useTranslations = () => {
     // Listen for language changes
     const handleLanguageChange = (event: CustomEvent<Language>) => {
       setLanguage(event.detail);
+      // Force re-render to update all translations
+      forceUpdate({});
     };
 
     window.addEventListener('languageChange', handleLanguageChange as EventListener);
@@ -113,12 +143,15 @@ export const useTranslations = () => {
   const changeLanguage = (newLanguage: Language) => {
     setCurrentLanguage(newLanguage);
     setLanguage(newLanguage);
+    // Force re-render
+    forceUpdate({});
   };
 
   return {
     language,
     changeLanguage,
     t,
+    translateByText,
     isLoading
   };
 };

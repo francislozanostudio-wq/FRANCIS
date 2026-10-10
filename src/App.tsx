@@ -9,6 +9,7 @@ import Services from "./pages/Services";
 import Gallery from "./pages/Gallery";
 import About from "./pages/About";
 import Booking from "./pages/Booking";
+import BookingDemo from "./pages/BookingDemo";
 import Testimonials from "./pages/Testimonials";
 import Contact from "./pages/Contact";
 import AdminLogin from "./pages/AdminLogin";
@@ -18,11 +19,15 @@ import AdminGallery from "./pages/admin/AdminGallery";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminAbout from "./pages/admin/AdminAbout";
 import AdminServices from "./pages/admin/AdminServices";
+import AdminAddOns from "./pages/admin/AdminAddOns";
 import AdminHomepage from "./pages/admin/AdminHomepage";
 import AdminTestimonials from "./pages/admin/AdminTestimonials";
 import AdminEmailSettings from "./pages/admin/AdminEmailSettings";
 import AdminTranslations from "./pages/admin/AdminTranslations";
+import AdminServicePageSettings from "./pages/admin/AdminServicePageSettings";
+import AdminAvailability from "./pages/admin/AdminAvailability";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { SubmitReview } from "./pages/SubmitReview";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,8 +45,10 @@ const App = () => (
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/about" element={<About />} />
             <Route path="/booking" element={<Booking />} />
+            <Route path="/booking-demo" element={<BookingDemo />} />
             <Route path="/testimonials" element={<Testimonials />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/review/:shortCode" element={<SubmitReview />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/bookings" element={<ProtectedRoute requireAdmin><AdminBookings /></ProtectedRoute>} />
@@ -49,10 +56,13 @@ const App = () => (
             <Route path="/admin/messages" element={<ProtectedRoute requireAdmin><AdminMessages /></ProtectedRoute>} />
             <Route path="/admin/about" element={<ProtectedRoute requireAdmin><AdminAbout /></ProtectedRoute>} />
             <Route path="/admin/services" element={<ProtectedRoute requireAdmin><AdminServices /></ProtectedRoute>} />
+            <Route path="/admin/add-ons" element={<ProtectedRoute requireAdmin><AdminAddOns /></ProtectedRoute>} />
             <Route path="/admin/homepage" element={<ProtectedRoute requireAdmin><AdminHomepage /></ProtectedRoute>} />
             <Route path="/admin/testimonials" element={<ProtectedRoute requireAdmin><AdminTestimonials /></ProtectedRoute>} />
             <Route path="/admin/email-settings" element={<ProtectedRoute requireAdmin><AdminEmailSettings /></ProtectedRoute>} />
             <Route path="/admin/translations" element={<ProtectedRoute requireAdmin><AdminTranslations /></ProtectedRoute>} />
+            <Route path="/admin/service-page-settings" element={<ProtectedRoute requireAdmin><AdminServicePageSettings /></ProtectedRoute>} />
+            <Route path="/admin/availability" element={<ProtectedRoute requireAdmin><AdminAvailability /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

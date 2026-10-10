@@ -4,18 +4,21 @@ import { getStudioSettings } from './studioService';
 import type { BookingData } from '@/components/booking/MultiStepBookingForm';
 
 export const generateBookingPDF = async (bookingData: BookingData) => {
-  const { service, date, time, clientInfo, confirmationNumber } = bookingData;
+  const { selectedServices, date, time, clientInfo, confirmationNumber } = bookingData;
   
-  if (!service || !date || !time || !clientInfo || !confirmationNumber) {
-    throw new Error('Incomplete booking data for PDF generation');
+  if (!selectedServices.length || !date || !time || !clientInfo || !confirmationNumber) {
+    throw new Error('Incomplete booking data for PDF generation ');
   }
+
+  const servicesTotal = selectedServices.reduce((sum, service) => sum + service.price, 0);
+  const servicesDurationTotal = selectedServices.reduce((sum, service) => sum + service.duration, 0);
 
   try {
     // Get current studio settings from database
     const studioSettings = await getStudioSettings();
     const studioName = studioSettings?.studio_name || 'Francis Lozano Studio';
-    const studioPhone = studioSettings?.studio_phone || '(615) 555-NAIL';
-    const studioEmail = studioSettings?.studio_email || 'hello@francislozanostudio.com';
+    const studioPhone = studioSettings?.studio_phone || '(+1 737-378-5755';
+    const studioEmail = studioSettings?.studio_email || 'francislozanostudio@gmail.com';
     const websiteUrl = studioSettings?.website_url || 'https://francislozanostudio.com';
     
     // Get location configuration
@@ -93,16 +96,50 @@ export const generateBookingPDF = async (bookingData: BookingData) => {
     
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Service: ${service.name}`, 25, yPosition);
+    doc.text(`Services (${selectedServices.length}):`, 25, yPosition);
     yPosition += 8;
+    selectedServices.forEach((service) => {
+      doc.text(`  • ${service.name} ($${service.price}, ${service.duration} min)`, 30, yPosition);
+      yPosition += 6;
+    });
     doc.text(`Date: ${format(date, 'PPPP')}`, 25, yPosition);
     yPosition += 8;
     doc.text(`Time: ${time}`, 25, yPosition);
     yPosition += 8;
-    doc.text(`Duration: ${service.duration} minutes`, 25, yPosition);
+    doc.text(`Duration: ${servicesDurationTotal} minutes`, 25, yPosition);
     yPosition += 8;
-    doc.text(`Total Cost: $${service.price}`, 25, yPosition);
-    yPosition += 15;
+    doc.text(`Services Total: $${servicesTotal.toFixed(2)}`, 25, yPosition);
+    yPosition += 8;
+    
+    // Add-ons section if any
+    if (bookingData.selectedAddOns && bookingData.selectedAddOns.length > 0) {
+      const addOnsTotal = bookingData.selectedAddOns.reduce((sum, addOn) => sum + addOn.price, 0);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Add-Ons (${bookingData.selectedAddOns.length}):`, 25, yPosition);
+      yPosition += 6;
+      
+      doc.setFont('helvetica', 'normal');
+      bookingData.selectedAddOns.forEach(addOn => {
+        doc.text(`  • ${addOn.name} (+$${addOn.price})`, 30, yPosition);
+        yPosition += 6;
+      });
+      
+      yPosition += 2;
+      doc.text(`Add-Ons Total: +$${addOnsTotal.toFixed(2)}`, 25, yPosition);
+      yPosition += 10;
+      
+      // Total cost with bold
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text(`Total Cost: $${(servicesTotal + addOnsTotal).toFixed(2)}`, 25, yPosition);
+      yPosition += 15;
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+    } else {
+      doc.text(`Total Cost: $${servicesTotal.toFixed(2)}`, 25, yPosition);
+      yPosition += 15;
+    }
 
     // Studio Information Section
     doc.setFontSize(14);

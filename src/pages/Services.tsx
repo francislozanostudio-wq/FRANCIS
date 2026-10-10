@@ -20,14 +20,25 @@ interface Service {
   display_order: number;
 }
 
+interface AddOn {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  is_active: boolean;
+  display_order: number;
+}
+
 const Services = () => {
   const [services, setServices] = useState<Service[]>([]);
+  const [addOns, setAddOns] = useState<AddOn[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [studioSettings, setStudioSettings] = useState<StudioSettings | null>(null);
-  const { t } = useTranslations();
+  const { t, language, translateByText } = useTranslations();
 
   useEffect(() => {
     fetchServices();
+    fetchAddOns();
     loadStudioSettings();
     
     // Set up real-time subscription
@@ -41,12 +52,23 @@ const Services = () => {
       )
       .subscribe();
 
+    const addOnsSubscription = supabase
+      .channel('add-ons-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'add_ons' },
+        () => {
+          fetchAddOns();
+        }
+      )
+      .subscribe();
+
     const studioSubscription = subscribeToStudioSettings((settings) => {
       setStudioSettings(settings);
     });
 
     return () => {
       supabase.removeChannel(servicesSubscription);
+      supabase.removeChannel(addOnsSubscription);
       if (studioSubscription) {
         studioSubscription.unsubscribe();
       }
@@ -81,6 +103,25 @@ const Services = () => {
     }
   };
 
+  const fetchAddOns = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('add_ons')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching add-ons:', error);
+        return;
+      }
+
+      setAddOns(data || []);
+    } catch (error) {
+      console.error('Error fetching add-ons:', error);
+    }
+  };
+
   // Group services by category
   const groupedServices = services.reduce((acc, service) => {
     if (!acc[service.category]) {
@@ -100,15 +141,6 @@ const Services = () => {
     'general': { title: 'Additional Services', icon: Star }
   };
 
-  const addOnServices = [
-    { name: "Cuticle Oil Treatment", price: "+$5" },
-    { name: "Paraffin Hand Treatment", price: "+$15" },
-    { name: "Extended Hand Massage", price: "+$10" },
-    { name: "Nail Repair (per nail)", price: "+$5" },
-    { name: "Shape Change", price: "+$10" },
-    { name: "Rush Service (48hr notice)", price: "+$25" }
-  ];
-
   return (
     <Layout>
       {/* Hero Section */}
@@ -123,6 +155,30 @@ const Services = () => {
           <div className="w-24 h-1 bg-gradient-gold mx-auto"></div>
         </div>
       </section>
+
+      {/* Service Notes */}
+      {studioSettings && (studioSettings.service_note_pricing || studioSettings.service_note_hand_treatment) && (
+        <section className="py-8 bg-accent/5">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto space-y-4">
+              {studioSettings.service_note_pricing && (
+                <div className="bg-card border border-accent/20 rounded-lg p-6 text-center">
+                  <p className="text-lg text-card-foreground font-medium">
+                    {translateByText(studioSettings.service_note_pricing)}
+                  </p>
+                </div>
+              )}
+              {studioSettings.service_note_hand_treatment && (
+                <div className="bg-card border border-accent/20 rounded-lg p-6 text-center">
+                  <p className="text-lg text-card-foreground font-medium">
+                    {translateByText(studioSettings.service_note_hand_treatment)}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Services Menu */}
       <section className="py-20">
@@ -156,12 +212,12 @@ const Services = () => {
                       <Card key={service.id} className="hover-lift bg-card border-border relative">
                         <CardHeader>
                           <CardTitle className="font-heading text-xl text-card-foreground flex items-center justify-between">
-                            <span>{service.name}</span>
+                            <span>{translateByText(service.name)}</span>
                             <span className="text-lg font-bold text-accent">${service.price}</span>
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-muted-foreground mb-4">{service.description}</p>
+                          <p className="text-muted-foreground mb-4">{translateByText(service.description)}</p>
                           <div className="flex items-center text-sm text-muted-foreground">
                             <Clock size={16} className="mr-2" />
                             <span>{service.duration} min</span>
@@ -175,23 +231,31 @@ const Services = () => {
             })
           )}
 
-          {/* Static Add-On Services Section */}
-          {Object.keys(groupedServices).length > 0 && (
+          {/* Dynamic Add-On Services Section */}
+          {addOns.length > 0 && (
             <div className="mb-16">
               <div className="text-center mb-12">
                 <div className="w-16 h-16 bg-gradient-gold rounded-full flex items-center justify-center mx-auto mb-4">
                   <Star size={32} className="text-luxury-black" />
                 </div>
                 <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground">
-                  Add-On Services
+                  {t('services.add_ons', 'Add-On Services')}
                 </h2>
+                <p className="text-muted-foreground mt-2">
+                  Enhance your experience with these optional extras
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {addOnServices.map((addon, index) => (
-                  <div key={index} className="flex justify-between items-center p-4 bg-muted rounded-lg">
-                    <span className="font-medium text-foreground">{addon.name}</span>
-                    <span className="font-bold text-accent">{addon.price}</span>
+                {addOns.map((addOn) => (
+                  <div key={addOn.id} className="flex justify-between items-center p-4 bg-muted rounded-lg hover:bg-accent/10 transition-colors">
+                    <div className="flex-1">
+                      <span className="font-medium text-foreground">{translateByText(addOn.name)}</span>
+                      {addOn.description && (
+                        <p className="text-xs text-muted-foreground mt-1">{translateByText(addOn.description)}</p>
+                      )}
+                    </div>
+                    <span className="font-bold text-accent ml-4">+${addOn.price}</span>
                   </div>
                 ))}
               </div>
@@ -201,40 +265,83 @@ const Services = () => {
           {/* Booking Policies */}
           <div className="bg-secondary rounded-lg p-8 mb-12">
             <h3 className="font-heading text-2xl font-bold text-foreground mb-6">{t('services.booking_policies', 'Booking Policies')}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-foreground mb-3">Deposits & Payment</h4>
-                <ul className="space-y-2 text-muted-foreground">
-                  <li>• 50% deposit required to secure appointment</li>
-                  <li>• Cash, Venmo, and card payments accepted</li>
-                  <li>• Gratuity appreciated but not required</li>
-                </ul>
+            {studioSettings?.booking_policies_text ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {studioSettings.booking_policies_text.deposit_payment && (
+                  <div>
+                    <h4 className="font-semibold text-foreground mb-3">{translateByText(studioSettings.booking_policies_text.deposit_payment.title)}</h4>
+                    <ul className="space-y-2 text-muted-foreground">
+                      {studioSettings.booking_policies_text.deposit_payment.items.map((item, index) => (
+                        <li key={index}>• {translateByText(item)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {studioSettings.booking_policies_text.cancellation && (
+                  <div>
+                    <h4 className="font-semibold text-foreground mb-3">{translateByText(studioSettings.booking_policies_text.cancellation.title)}</h4>
+                    <ul className="space-y-2 text-muted-foreground">
+                      {studioSettings.booking_policies_text.cancellation.items.map((item, index) => (
+                        <li key={index}>• {translateByText(item)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {studioSettings.booking_policies_text.guarantee && (
+                  <div>
+                    <h4 className="font-semibold text-foreground mb-3">{translateByText(studioSettings.booking_policies_text.guarantee.title)}</h4>
+                    <ul className="space-y-2 text-muted-foreground">
+                      {studioSettings.booking_policies_text.guarantee.items.map((item, index) => (
+                        <li key={index}>• {translateByText(item)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {studioSettings.booking_policies_text.health_safety && (
+                  <div>
+                    <h4 className="font-semibold text-foreground mb-3">{translateByText(studioSettings.booking_policies_text.health_safety.title)}</h4>
+                    <ul className="space-y-2 text-muted-foreground">
+                      {studioSettings.booking_policies_text.health_safety.items.map((item, index) => (
+                        <li key={index}>• {translateByText(item)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
-              <div>
-                <h4 className="font-semibold text-foreground mb-3">Cancellation Policy</h4>
-                <ul className="space-y-2 text-muted-foreground">
-                  <li>• 48-hour notice required for cancellations</li>
-                  <li>• Same-day cancellations forfeit deposit</li>
-                  <li>• Late arrivals may result in shortened service</li>
-                </ul>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-foreground mb-3">Deposits & Payment</h4>
+                  <ul className="space-y-2 text-muted-foreground">
+                    <li>• A $30 deposit is required to secure your appointment.</li>
+                    <li>• Cash and Zelle payments are accepted.</li>
+                    <li>• Tips are appreciated but not required.</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-3">Cancellation Policy</h4>
+                  <ul className="space-y-2 text-muted-foreground">
+                    <li>• 48-hour notice required for cancellations</li>
+                    <li>• Same-day cancellations forfeit deposit</li>
+                    <li>• Late arrivals may result in shortened service</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-3">Service Guarantee</h4>
+                  <ul className="space-y-2 text-muted-foreground">
+                    <li>• ✅ 1-week guarantee on all services.</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-3">Health & Safety</h4>
+                  <ul className="space-y-2 text-muted-foreground">
+                    <li>• Please reschedule if feeling unwell</li>
+                    <li>• All tools are sanitized and sterilized</li>
+                    <li>• Allergic reactions: please inform before service</li>
+                  </ul>
+                </div>
               </div>
-              <div>
-                <h4 className="font-semibold text-foreground mb-3">Fills & Touch-Ups</h4>
-                <ul className="space-y-2 text-muted-foreground">
-                  <li>• Fills from other salons require removal fee</li>
-                  <li>• 2-week guarantee on chip-resistant services</li>
-                  <li>• Complimentary minor adjustments within 3 days</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground mb-3">Health & Safety</h4>
-                <ul className="space-y-2 text-muted-foreground">
-                  <li>• Please reschedule if feeling unwell</li>
-                  <li>• All tools are sanitized and sterilized</li>
-                  <li>• Allergic reactions: please inform before service</li>
-                </ul>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* CTA Section */}
@@ -243,8 +350,10 @@ const Services = () => {
               {t('services.ready_to_book', 'Ready to Book Your Appointment?')}
             </h3>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Final pricing for nail art is determined based on complexity and design detail. 
-              Book your consultation to discuss your vision and receive an accurate quote.
+              {studioSettings?.service_page_custom_text 
+                ? translateByText(studioSettings.service_page_custom_text)
+                : translateByText('Final pricing for nail art is determined based on complexity and design detail. Book your consultation to discuss your vision and receive an accurate quote.')
+              }
             </p>
             <div className="space-x-4">
               <Button asChild size="lg" className="bg-gradient-gold hover:bg-gradient-gold/90 text-luxury-black font-semibold">

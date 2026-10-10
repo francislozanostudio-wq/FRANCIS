@@ -8,13 +8,15 @@ import { subscribeToStudioSettings, type StudioSettings } from '@/lib/studioServ
 import { Card, CardContent } from '@/components/ui/card';
 import { BookingProgress } from './BookingProgress';
 import { ServiceSelectionStep, Service } from './ServiceSelectionStep';
+import { AddOnSelectionStep, AddOn } from './AddOnSelectionStep';
 import { DateTimeStep } from './DateTimeStep';
 import { ClientInfoStep } from './ClientInfoStep';
 import { ReviewStep } from './ReviewStep';
 import { ConfirmationStep } from './ConfirmationStep';
 
 export interface BookingData {
-  service?: Service;
+  selectedServices: Service[];
+  selectedAddOns?: AddOn[];
   date?: Date;
   time?: string;
   clientInfo?: {
@@ -28,7 +30,7 @@ export interface BookingData {
 
 export function MultiStepBookingForm() {
   const [currentStep, setCurrentStep] = useState(1);
-  const [bookingData, setBookingData] = useState<BookingData>({});
+  const [bookingData, setBookingData] = useState<BookingData>({ selectedServices: [], selectedAddOns: [] });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [studioSettings, setStudioSettings] = useState<StudioSettings | null>(null);
   const { toast } = useToast();
@@ -58,7 +60,7 @@ export function MultiStepBookingForm() {
   };
 
   const nextStep = () => {
-    setCurrentStep(prev => Math.min(prev + 1, 5));
+    setCurrentStep(prev => Math.min(prev + 1, 6));
   };
 
   const prevStep = () => {
@@ -70,7 +72,7 @@ export function MultiStepBookingForm() {
   };
 
   const submitBooking = async () => {
-    if (!bookingData.service || !bookingData.date || !bookingData.time || !bookingData.clientInfo) {
+    if (bookingData.selectedServices.length === 0 || !bookingData.date || !bookingData.time || !bookingData.clientInfo) {
       toast({
         title: 'Error',
         description: 'Missing required booking information',
@@ -83,13 +85,37 @@ export function MultiStepBookingForm() {
     
     try {
       const confirmationNumber = 'FNA-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+      const servicesTotal = bookingData.selectedServices.reduce((sum, service) => sum + service.price, 0);
+      const servicesDurationTotal = bookingData.selectedServices.reduce((sum, service) => sum + service.duration, 0);
+      const selectedServicesData = bookingData.selectedServices.map((service) => ({
+        id: service.id,
+        name: service.name,
+        price: service.price,
+        duration: service.duration,
+        category: service.category,
+      }));
+      const servicesLabel = bookingData.selectedServices.map((service) => service.name).join(' + ');
+      
+      // Calculate add-ons total
+      const addOnsTotal = (bookingData.selectedAddOns || []).reduce((sum, addOn) => sum + addOn.price, 0);
+      
+      // Prepare add-ons data for storage
+      const selectedAddOnsData = (bookingData.selectedAddOns || []).map(addOn => ({
+        id: addOn.id,
+        name: addOn.name,
+        price: addOn.price,
+        description: addOn.description
+      }));
       
       // Insert booking into Supabase
       const { error } = await supabase
         .from('bookings')
         .insert({
-          service_name: bookingData.service.name,
-          service_price: bookingData.service.price,
+          service_name: servicesLabel,
+          service_price: servicesTotal,
+          selected_services: selectedServicesData,
+          services_total: servicesTotal,
+          service_duration_total: servicesDurationTotal,
           appointment_date: bookingData.date.toISOString().split('T')[0],
           appointment_time: bookingData.time,
           client_name: bookingData.clientInfo.fullName!,
@@ -98,6 +124,8 @@ export function MultiStepBookingForm() {
           status: 'confirmed',
           notes: bookingData.clientInfo.notes || null,
           confirmation_number: confirmationNumber,
+          selected_add_ons: selectedAddOnsData,
+          add_ons_total: addOnsTotal,
         });
 
       if (error) {
@@ -145,13 +173,16 @@ export function MultiStepBookingForm() {
           websiteUrl: studioSettings.website_url
         } : {};
         
+        // Calculate totals
+        const addOnsTotal = (bookingData.selectedAddOns || []).reduce((sum, addOn) => sum + addOn.price, 0);
+        
         // Send client confirmation email
         await sendBookingEmail({
           type: 'confirmation',
           booking: {
             id: 'temp-id', // Will be replaced with actual ID from database
-            service_name: bookingData.service.name,
-            service_price: bookingData.service.price,
+            service_name: servicesLabel,
+            service_price: servicesTotal,
             appointment_date: bookingData.date.toISOString().split('T')[0],
             appointment_time: bookingData.time,
             client_name: bookingData.clientInfo.fullName!,
@@ -159,6 +190,8 @@ export function MultiStepBookingForm() {
             client_phone: bookingData.clientInfo.phone!,
             confirmation_number: confirmationNumber,
             notes: bookingData.clientInfo.notes,
+            selected_add_ons: bookingData.selectedAddOns || [],
+            add_ons_total: addOnsTotal,
           },
           locationConfig: locationConfig,
           studioConfig: studioConfig
@@ -184,8 +217,8 @@ export function MultiStepBookingForm() {
               type: 'admin-notification',
               booking: {
                 id: 'temp-id',
-                service_name: bookingData.service.name,
-                service_price: bookingData.service.price,
+                service_name: servicesLabel,
+                service_price: servicesTotal,
                 appointment_date: bookingData.date.toISOString().split('T')[0],
                 appointment_time: bookingData.time,
                 client_name: bookingData.clientInfo.fullName!,
@@ -193,6 +226,8 @@ export function MultiStepBookingForm() {
                 client_phone: bookingData.clientInfo.phone!,
                 confirmation_number: confirmationNumber,
                 notes: bookingData.clientInfo.notes,
+                selected_add_ons: bookingData.selectedAddOns || [],
+                add_ons_total: addOnsTotal,
               },
               adminEmail: adminConfig.email,
               locationConfig: locationConfig,
@@ -235,23 +270,33 @@ export function MultiStepBookingForm() {
       case 1:
         return (
           <ServiceSelectionStep
-            selectedService={bookingData.service}
-            onServiceSelect={(service) => updateBookingData({ service })}
+            selectedServices={bookingData.selectedServices}
+            onServicesChange={(selectedServices) => updateBookingData({ selectedServices })}
             onNext={nextStep}
           />
         );
       case 2:
         return (
+          <AddOnSelectionStep
+            selectedAddOns={bookingData.selectedAddOns || []}
+            onAddOnsSelect={(selectedAddOns) => updateBookingData({ selectedAddOns })}
+            onNext={nextStep}
+            onPrev={prevStep}
+            onSkip={nextStep}
+          />
+        );
+      case 3:
+        return (
           <DateTimeStep
             selectedDate={bookingData.date}
             selectedTime={bookingData.time}
-            serviceDuration={bookingData.service?.duration || 60}
+            serviceDuration={bookingData.selectedServices.reduce((sum, service) => sum + service.duration, 0) || 60}
             onDateTimeSelect={(date, time) => updateBookingData({ date, time })}
             onNext={nextStep}
             onPrev={prevStep}
           />
         );
-      case 3:
+      case 4:
         return (
           <ClientInfoStep
             clientInfo={bookingData.clientInfo}
@@ -260,7 +305,7 @@ export function MultiStepBookingForm() {
             onPrev={prevStep}
           />
         );
-      case 4:
+      case 5:
         return (
           <ReviewStep
             bookingData={bookingData}
@@ -270,13 +315,13 @@ export function MultiStepBookingForm() {
             isSubmitting={isSubmitting}
           />
         );
-      case 5:
+      case 6:
         return (
           <ConfirmationStep
             bookingData={bookingData}
             onNewBooking={() => {
               setCurrentStep(1);
-              setBookingData({});
+              setBookingData({ selectedServices: [], selectedAddOns: [] });
             }}
           />
         );
@@ -289,7 +334,7 @@ export function MultiStepBookingForm() {
     <div className="animate-fade-in">
       <Card className="w-full max-w-4xl mx-auto bg-card border-border/50 shadow-elegant backdrop-blur-sm">
         <CardContent className="p-8">
-          <BookingProgress currentStep={currentStep} totalSteps={5} />
+          <BookingProgress currentStep={currentStep} totalSteps={6} />
           <div className="mt-8">
             {renderStep()}
           </div>

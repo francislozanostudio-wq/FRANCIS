@@ -26,7 +26,7 @@ const Gallery = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [studioSettings, setStudioSettings] = useState<StudioSettings | null>(null);
   const { toast } = useToast();
-  const { t } = useTranslations();
+  const { t, language, translateByText } = useTranslations();
 
   useEffect(() => {
     fetchGalleryItems();
@@ -200,11 +200,11 @@ const Gallery = () => {
                   <div className="absolute inset-0 bg-luxury-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                     <div className="text-center text-pure-white p-4">
                       <h3 className="font-heading text-lg font-semibold mb-2">
-                        {item.title || 'Beautiful Nail Design'}
+                        {translateByText(item.title) || 'Beautiful Nail Design'}
                       </h3>
                       {item.description && (
                         <p className="text-sm mb-3 opacity-90">
-                          {item.description}
+                          {translateByText(item.description)}
                         </p>
                       )}
                       <div className="flex flex-wrap justify-center gap-2 text-xs">
@@ -228,20 +228,20 @@ const Gallery = () => {
           {/* Results Info */}
           <div className="text-center mt-12">
             <p className="text-muted-foreground mb-6">
-              Showing {filteredItems.length} designs
+              {t('gallery.showing_designs', `Showing ${filteredItems.length} designs`).replace('{count}', filteredItems.length.toString())}
               {activeFilter !== 'all' && ` for "${filters.find(f => f.id === activeFilter)?.label}"`}
             </p>
             
             <div className="space-y-4">
               <p className="text-lg text-foreground max-w-2xl mx-auto">
-                Love what you see? Book your appointment today and let's create your perfect nail design together.
+                {t('gallery.book_cta', 'Love what you see? Book your appointment today and let\'s create your perfect nail design together.')}
               </p>
               <div className="space-x-4">
                 <Button asChild size="lg" className="bg-gradient-gold hover:bg-gradient-gold/90 text-luxury-black font-semibold">
-                  <Link to="/booking">Book Appointment</Link>
+                  <Link to="/booking">{t('gallery.book_appointment', 'Book Appointment')}</Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground">
-                  <Link to="/services">View Services</Link>
+                  <Link to="/services">{t('gallery.view_services', 'View Services')}</Link>
                 </Button>
               </div>
             </div>
@@ -253,15 +253,13 @@ const Gallery = () => {
       <section className="py-20 bg-secondary">
         <div className="container mx-auto px-4 text-center">
           <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-6">
-            Bring Your Vision to Life
+            {t('gallery.custom_design_title', 'Bring Your Vision to Life')}
           </h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-8">
-            Have a specific design in mind? Our custom consultation process ensures your unique vision 
-            becomes a stunning reality. From concept sketches to the final masterpiece, we work together 
-            to create nail art that's uniquely yours.
+            {t('gallery.custom_design_description', 'Have a specific design in mind? Our custom consultation process ensures your unique vision becomes a stunning reality. From concept sketches to the final masterpiece, we work together to create nail art that\'s uniquely yours.')}
           </p>
           <Button asChild size="lg" className="bg-gradient-gold hover:bg-gradient-gold/90 text-luxury-black font-semibold">
-            <Link to="/contact">Discuss Custom Design</Link>
+            <Link to="/contact">{t('gallery.discuss_custom', 'Discuss Custom Design')}</Link>
           </Button>
         </div>
       </section>

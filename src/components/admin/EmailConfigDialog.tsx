@@ -25,7 +25,7 @@ export function EmailConfigDialog({ trigger }: EmailConfigDialogProps) {
     adminEmail: 'alerttradingvieww@gmail.com',
     studioName: 'Francis Lozano Studio',
     studioAddress: 'Private Studio, Nashville TN',
-    studioPhone: '(615) 555-NAIL',
+    studioPhone: '(+1 737-378-5755',
     fromEmail: 'alerttradingvieww@gmail.com',
   });
   const [isOpen, setIsOpen] = useState(false);
@@ -97,7 +97,7 @@ export function EmailConfigDialog({ trigger }: EmailConfigDialogProps) {
         appointment_time: '2:00 PM',
         client_name: 'Test Client',
         client_email: config.adminEmail, // Send test to admin email
-        client_phone: '(615) 555-0123',
+        client_phone: '+1 737-378-5755',
         confirmation_number: 'TEST-123',
         notes: 'This is a test email to verify configuration.',
       };
@@ -171,7 +171,7 @@ export function EmailConfigDialog({ trigger }: EmailConfigDialogProps) {
               <Input
                 id="adminEmail"
                 type="email"
-                placeholder="admin@francislozanostudio.com"
+                placeholder="admin@francis_lozano_studio.com"
                 value={config.adminEmail}
                 onChange={(e) => setConfig(prev => ({ ...prev, adminEmail: e.target.value }))}
               />
@@ -208,7 +208,7 @@ export function EmailConfigDialog({ trigger }: EmailConfigDialogProps) {
               <Label htmlFor="studioPhone">Studio Phone</Label>
               <Input
                 id="studioPhone"
-                placeholder="(615) 555-NAIL"
+                placeholder="(+1 737-378-5755"
                 value={config.studioPhone}
                 onChange={(e) => setConfig(prev => ({ ...prev, studioPhone: e.target.value }))}
               />

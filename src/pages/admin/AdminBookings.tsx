@@ -47,6 +47,9 @@ interface Booking {
   id: string;
   service_name: string;
   service_price: number;
+  selected_services?: { id?: string; name: string; price?: number; duration?: number; category?: string }[];
+  services_total?: number;
+  service_duration_total?: number;
   appointment_date: string;
   appointment_time: string;
   client_name: string;
@@ -57,6 +60,8 @@ interface Booking {
   confirmation_number: string;
   created_at: string;
   updated_at: string;
+  selected_add_ons?: any[];
+  add_ons_total?: number;
 }
 
 interface BookingStats {
@@ -93,6 +98,9 @@ const AdminBookings = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [clientName, setClientName] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
@@ -174,7 +182,7 @@ const AdminBookings = () => {
       }).length,
       totalRevenue: bookingsData
         .filter(b => b.status === 'completed')
-        .reduce((sum, b) => sum + b.service_price, 0),
+        .reduce((sum, b) => sum + getServicesTotal(b), 0),
       monthlyRevenue: bookingsData
         .filter(b => {
           const bookingDate = parseISO(b.created_at);
@@ -182,7 +190,7 @@ const AdminBookings = () => {
                  bookingDate.getFullYear() === currentYear &&
                  b.status === 'completed';
         })
-        .reduce((sum, b) => sum + b.service_price, 0)
+        .reduce((sum, b) => sum + getServicesTotal(b), 0)
     };
 
     setStats(stats);
@@ -197,7 +205,7 @@ const AdminBookings = () => {
       filtered = filtered.filter(booking =>
         booking.client_name.toLowerCase().includes(term) ||
         booking.client_email.toLowerCase().includes(term) ||
-        booking.service_name.toLowerCase().includes(term) ||
+        getServiceDisplayName(booking).toLowerCase().includes(term) ||
         booking.confirmation_number.toLowerCase().includes(term) ||
         booking.client_phone.includes(term)
       );
@@ -248,8 +256,8 @@ const AdminBookings = () => {
           bValue = b.client_name.toLowerCase();
           break;
         case 'service_price':
-          aValue = a.service_price;
-          bValue = b.service_price;
+          aValue = getServicesTotal(a);
+          bValue = getServicesTotal(b);
           break;
         case 'created_at':
         default:
@@ -349,22 +357,28 @@ const AdminBookings = () => {
     }
   };
 
-  const updateBookingNotes = async (bookingId: string, notes: string) => {
+  const updateBookingClientInfo = async (
+    bookingId: string,
+    data: { name: string; email: string; phone: string; notes: string }
+  ) => {
     try {
       setIsUpdating(true);
       const { error } = await supabase
         .from('bookings')
         .update({ 
-          notes: notes,
+          client_name: data.name,
+          client_email: data.email,
+          client_phone: data.phone,
+          notes: data.notes || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', bookingId);
 
       if (error) {
-        console.error('Error updating booking notes:', error);
+        console.error('Error updating booking client info:', error);
         toast({
           title: 'Error',
-          description: 'Failed to update booking notes. Please try again.',
+          description: 'Failed to update client information. Please try again.',
           variant: 'destructive',
         });
         return;
@@ -373,19 +387,37 @@ const AdminBookings = () => {
       // Update local state
       setBookings(prev => prev.map(booking => 
         booking.id === bookingId 
-          ? { ...booking, notes: notes, updated_at: new Date().toISOString() }
+          ? { 
+              ...booking, 
+              client_name: data.name,
+              client_email: data.email,
+              client_phone: data.phone,
+              notes: data.notes, 
+              updated_at: new Date().toISOString() 
+            }
           : booking
       ));
 
+      if (selectedBooking && selectedBooking.id === bookingId) {
+        setSelectedBooking(prev => prev ? {
+          ...prev,
+          client_name: data.name,
+          client_email: data.email,
+          client_phone: data.phone,
+          notes: data.notes,
+          updated_at: new Date().toISOString()
+        } : null);
+      }
+
       toast({
         title: 'Success',
-        description: 'Booking notes updated successfully.',
+        description: 'Client information updated successfully.',
       });
     } catch (error) {
-      console.error('Error updating booking notes:', error);
+      console.error('Error updating booking client info:', error);
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred while updating the notes.',
+        description: 'An unexpected error occurred while updating client information.',
         variant: 'destructive',
       });
     } finally {
@@ -401,10 +433,10 @@ const AdminBookings = () => {
         booking.client_name,
         booking.client_email,
         booking.client_phone,
-        booking.service_name,
+        getServiceDisplayName(booking),
         booking.appointment_date,
         booking.appointment_time,
-        booking.service_price.toString(),
+        getServicesTotal(booking).toString(),
         booking.status,
         format(parseISO(booking.created_at), 'yyyy-MM-dd HH:mm'),
         booking.notes || ''
@@ -456,6 +488,25 @@ const AdminBookings = () => {
     if (isToday(appointmentDate)) return 'high';
     if (isTomorrow(appointmentDate)) return 'medium';
     return 'normal';
+  };
+
+  const getSelectedServices = (booking: Booking) => {
+    if (booking.selected_services && booking.selected_services.length > 0) {
+      return booking.selected_services;
+    }
+
+    return [{ name: booking.service_name, price: booking.service_price, duration: booking.service_duration_total }];
+  };
+
+  const getServiceDisplayName = (booking: Booking) => {
+    return getSelectedServices(booking).map((service) => service.name).join(', ');
+  };
+
+  const getServicesTotal = (booking: Booking) => {
+    if (typeof booking.services_total === 'number') {
+      return booking.services_total;
+    }
+    return booking.service_price;
   };
 
   if (isLoading) {
@@ -701,7 +752,7 @@ const AdminBookings = () => {
                           <div className="flex-1 space-y-2 sm:space-y-3">
                             <div className="flex flex-wrap items-center gap-2">
                               <h3 className="font-semibold text-card-foreground text-sm sm:text-lg">
-                                {booking.service_name}
+                                {getServiceDisplayName(booking)}
                               </h3>
                               <Badge className={`${getStatusColor(booking.status)} text-xs`}>
                                 <div className="flex items-center space-x-1">
@@ -726,50 +777,123 @@ const AdminBookings = () => {
                               )}
                             </div>
                             
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs sm:text-sm">
-                              <div className="space-y-1 sm:space-y-2">
-                                <div className="flex items-center text-muted-foreground">
-                                  <Calendar className="mr-2 flex-shrink-0" size={14} />
-                                  <span className="font-medium truncate">
-                                    {format(appointmentDate, 'MMM dd')} at {booking.appointment_time}
-                                  </span>
-                                </div>
-                                <div className="flex items-center text-muted-foreground">
-                                  <DollarSign className="mr-2 flex-shrink-0" size={14} />
-                                  <span className="font-medium">${booking.service_price}</span>
+                            {/* Appointment Info Strip */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs sm:text-sm">
+                              <div className="flex items-center text-muted-foreground">
+                                <Calendar className="mr-2 flex-shrink-0 text-accent" size={14} />
+                                <span className="font-medium truncate">
+                                  {format(appointmentDate, 'MMM dd, yyyy')} at {booking.appointment_time}
+                                </span>
+                              </div>
+                              <div className="flex items-center text-muted-foreground">
+                                <DollarSign className="mr-2 flex-shrink-0 text-accent" size={14} />
+                                <div>
+                                  <span className="font-semibold text-card-foreground">${getServicesTotal(booking).toFixed(2)}</span>
+                                  {booking.selected_add_ons && booking.selected_add_ons.length > 0 && (
+                                    <span className="text-xs text-accent ml-1">
+                                      (+${booking.add_ons_total?.toFixed(2)} add-ons)
+                                    </span>
+                                  )}
                                 </div>
                               </div>
-                              
-                              <div className="space-y-1 sm:space-y-2">
-                                <div className="flex items-center text-muted-foreground">
-                                  <Users className="mr-2 flex-shrink-0" size={14} />
-                                  <span className="font-medium truncate">{booking.client_name}</span>
+                              <div className="flex items-center text-muted-foreground">
+                                <Clock className="mr-2 flex-shrink-0 text-muted-foreground" size={14} />
+                                <span className="truncate">Booked {format(parseISO(booking.created_at), 'MMM dd')}</span>
+                              </div>
+                            </div>
+                            
+                            {/* Dedicated Client Information Card */}
+                            <div className="mt-2.5 p-3 sm:p-4 rounded-xl border border-border bg-muted/40 space-y-2.5">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5 text-xs font-semibold text-accent uppercase tracking-wider">
+                                  <Users size={14} />
+                                  <span>Client Information</span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-xs text-muted-foreground hover:text-accent hover:bg-accent/10"
+                                  onClick={() => {
+                                    setEditingBooking(booking);
+                                    setClientName(booking.client_name || '');
+                                    setClientEmail(booking.client_email || '');
+                                    setClientPhone(booking.client_phone || '');
+                                    setAdminNotes(booking.notes || '');
+                                    setIsEditOpen(true);
+                                  }}
+                                >
+                                  <Edit size={12} className="mr-1" />
+                                  Edit Info
+                                </Button>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs sm:text-sm">
+                                <div className="flex items-center text-card-foreground">
+                                  <span className="text-muted-foreground mr-1.5 text-xs">Name:</span>
+                                  <span className="font-semibold truncate">{booking.client_name}</span>
                                 </div>
                                 <div className="flex items-center text-muted-foreground">
-                                  <Mail className="mr-2 flex-shrink-0" size={14} />
-                                  <span className="font-medium truncate">{booking.client_email}</span>
+                                  <Phone size={13} className="mr-1.5 text-accent flex-shrink-0" />
+                                  <a href={`tel:${booking.client_phone}`} className="hover:text-accent hover:underline truncate">
+                                    {booking.client_phone}
+                                  </a>
+                                </div>
+                                <div className="flex items-center text-muted-foreground">
+                                  <Mail size={13} className="mr-1.5 text-accent flex-shrink-0" />
+                                  <a href={`mailto:${booking.client_email}`} className="hover:text-accent hover:underline truncate">
+                                    {booking.client_email}
+                                  </a>
                                 </div>
                               </div>
-                              
-                              <div className="space-y-1 sm:space-y-2">
-                                <div className="flex items-center text-muted-foreground">
-                                  <Phone className="mr-2 flex-shrink-0" size={14} />
-                                  <span className="font-medium truncate">{booking.client_phone}</span>
-                                </div>
-                                <div className="flex items-center text-muted-foreground">
-                                  <Clock className="mr-2 flex-shrink-0" size={14} />
-                                  <span className="truncate">Created {format(parseISO(booking.created_at), 'MMM dd')}</span>
+
+                              <div className="pt-2 border-t border-border/50 text-xs">
+                                <div className="flex items-start gap-1.5">
+                                  <MessageSquare size={13} className="text-accent mt-0.5 flex-shrink-0" />
+                                  <div className="min-w-0 flex-1">
+                                    <span className="font-medium text-card-foreground mr-1">Notes:</span>
+                                    {booking.notes ? (
+                                      <span className="text-muted-foreground">{booking.notes}</span>
+                                    ) : (
+                                      <span className="text-muted-foreground/60 italic">No notes provided</span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
                             
-                            {booking.notes && (
-                              <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-muted/50 rounded-md">
+                            {booking.selected_add_ons && booking.selected_add_ons.length > 0 && (
+                              <div className="mt-2 p-2 bg-accent/5 rounded-md border border-accent/20">
                                 <div className="flex items-start space-x-2">
-                                  <MessageSquare size={14} className="text-muted-foreground mt-0.5 flex-shrink-0" />
-                                  <div className="min-w-0">
-                                    <p className="text-xs sm:text-sm font-medium text-card-foreground mb-1">Client Notes:</p>
-                                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{booking.notes}</p>
+                                  <DollarSign size={14} className="text-accent mt-0.5 flex-shrink-0" />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-medium text-card-foreground mb-1">Add-Ons ({booking.selected_add_ons.length}):</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {booking.selected_add_ons.map((addOn: any, index: number) => (
+                                        <span key={index} className="text-xs text-accent bg-accent/10 px-2 py-0.5 rounded">
+                                          {addOn.name} (+${addOn.price})
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {booking.selected_services && booking.selected_services.length > 1 && (
+                              <div className="mt-2 p-2 bg-blue-50/50 rounded-md border border-blue-200/30">
+                                <div className="flex items-start space-x-2">
+                                  <FileText size={14} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-medium text-card-foreground mb-1">
+                                      Services ({booking.selected_services.length}):
+                                    </p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {booking.selected_services.map((service, index) => (
+                                        <span key={service.id || `${service.name}-${index}`} className="text-xs text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
+                                          {service.name} {typeof service.price === 'number' ? `($${service.price})` : ''}
+                                        </span>
+                                      ))}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -812,7 +936,7 @@ const AdminBookings = () => {
                                     const adminEmailConfigs = JSON.parse(localStorage.getItem('admin-email-configs') || '[]');
                                     const activeAdminEmails = adminEmailConfigs.filter((config: any) => config.isActive);
                                     const primaryEmail = activeAdminEmails.find((config: any) => config.isPrimary);
-                                    return primaryEmail?.email || activeAdminEmails[0]?.email || 'admin@francislozanostudio.com';
+                                    return primaryEmail?.email || activeAdminEmails[0]?.email || 'admin@francis_lozano_studio.com';
                                   })()}
                                 />
                               </div>
@@ -829,12 +953,15 @@ const AdminBookings = () => {
                                   <DropdownMenuItem
                                     onClick={() => {
                                       setEditingBooking(booking);
+                                      setClientName(booking.client_name || '');
+                                      setClientEmail(booking.client_email || '');
+                                      setClientPhone(booking.client_phone || '');
                                       setAdminNotes(booking.notes || '');
                                       setIsEditOpen(true);
                                     }}
                                   >
                                     <Edit className="mr-2" size={14} />
-                                    Edit Notes
+                                    Edit Client Info
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() => window.open(`mailto:${booking.client_email}?subject=Regarding your appointment on ${format(parseISO(booking.appointment_date), 'PPP')}`)}
@@ -866,7 +993,7 @@ const AdminBookings = () => {
                                           Are you sure you want to delete this booking? This action cannot be undone.
                                           <br /><br />
                                           <strong>Client:</strong> {booking.client_name}<br />
-                                          <strong>Service:</strong> {booking.service_name}<br />
+                                          <strong>Service:</strong> {getServiceDisplayName(booking)}<br />
                                           <strong>Date:</strong> {format(parseISO(booking.appointment_date), 'PPP')} at {booking.appointment_time}
                                         </AlertDialogDescription>
                                       </AlertDialogHeader>
@@ -905,80 +1032,142 @@ const AdminBookings = () => {
             </DialogHeader>
             {selectedBooking && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Service</Label>
-                      <p className="text-lg font-semibold">{selectedBooking.service_name}</p>
+                {/* Appointment Info */}
+                <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-accent font-semibold text-base">
+                      <Calendar size={18} />
+                      <span>Appointment Details</span>
                     </div>
+                    <Badge className={getStatusColor(selectedBooking.status)}>
+                      <div className="flex items-center space-x-1">
+                        {getStatusIcon(selectedBooking.status)}
+                        <span>{selectedBooking.status}</span>
+                      </div>
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Date & Time</Label>
-                      <p className="text-lg font-semibold">
+                      <Label className="text-xs font-medium text-muted-foreground">Service</Label>
+                      <p className="text-base font-semibold">{getServiceDisplayName(selectedBooking)}</p>
+                      {selectedBooking.selected_services && selectedBooking.selected_services.length > 1 && (
+                        <div className="mt-1 space-y-0.5">
+                          {selectedBooking.selected_services.map((service, index) => (
+                            <p key={service.id || `${service.name}-${index}`} className="text-xs text-muted-foreground">
+                              • {service.name} (${service.price})
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-medium text-muted-foreground">Date & Time</Label>
+                      <p className="text-base font-semibold">
                         {format(parseISO(selectedBooking.appointment_date), 'PPPP')}
                       </p>
-                      <p className="text-muted-foreground">{selectedBooking.appointment_time}</p>
+                      <p className="text-sm text-accent font-medium">{selectedBooking.appointment_time}</p>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-medium text-muted-foreground">Price</Label>
+                      <p className="text-base font-semibold">${getServicesTotal(selectedBooking).toFixed(2)}</p>
+                      {selectedBooking.selected_add_ons && selectedBooking.selected_add_ons.length > 0 && (
+                        <p className="text-xs text-accent mt-0.5">
+                          +${selectedBooking.add_ons_total?.toFixed(2)} add-ons
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dedicated Client Information Section */}
+                <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3.5">
+                  <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                    <div className="flex items-center gap-2 text-accent font-semibold text-base">
+                      <Users size={18} />
+                      <span>Client Information</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs border-accent/40 text-accent hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => {
+                        setEditingBooking(selectedBooking);
+                        setClientName(selectedBooking.client_name || '');
+                        setClientEmail(selectedBooking.client_email || '');
+                        setClientPhone(selectedBooking.client_phone || '');
+                        setAdminNotes(selectedBooking.notes || '');
+                        setIsEditOpen(true);
+                      }}
+                    >
+                      <Edit size={12} className="mr-1" />
+                      Edit Client Info
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs font-medium text-muted-foreground">Full Name</Label>
+                      <p className="text-base font-semibold text-card-foreground">{selectedBooking.client_name}</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Price</Label>
-                      <p className="text-lg font-semibold">${selectedBooking.service_price}</p>
+                      <Label className="text-xs font-medium text-muted-foreground">Phone Number</Label>
+                      <p className="text-base text-card-foreground">
+                        <a href={`tel:${selectedBooking.client_phone}`} className="hover:text-accent hover:underline flex items-center gap-1.5">
+                          <Phone size={14} className="text-accent" />
+                          {selectedBooking.client_phone}
+                        </a>
+                      </p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                      <Badge className={getStatusColor(selectedBooking.status)}>
-                        <div className="flex items-center space-x-1">
-                          {getStatusIcon(selectedBooking.status)}
-                          <span>{selectedBooking.status}</span>
+                      <Label className="text-xs font-medium text-muted-foreground">Email Address</Label>
+                      <p className="text-base text-card-foreground truncate">
+                        <a href={`mailto:${selectedBooking.client_email}`} className="hover:text-accent hover:underline flex items-center gap-1.5">
+                          <Mail size={14} className="text-accent" />
+                          {selectedBooking.client_email}
+                        </a>
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-medium text-muted-foreground">Confirmation #</Label>
+                      <p className="text-base font-mono text-card-foreground">{selectedBooking.confirmation_number}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-border/60">
+                    <Label className="text-xs font-medium text-muted-foreground mb-1 block">Client Notes</Label>
+                    <div className="p-3 bg-background/80 rounded-lg border border-border/60 text-sm text-card-foreground">
+                      {selectedBooking.notes ? (
+                        selectedBooking.notes
+                      ) : (
+                        <span className="text-muted-foreground italic">No notes provided</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {selectedBooking.selected_add_ons && selectedBooking.selected_add_ons.length > 0 && (
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">Selected Add-Ons</Label>
+                    <div className="mt-1 space-y-1.5">
+                      {selectedBooking.selected_add_ons.map((addOn: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center p-2 bg-accent/5 rounded-md text-xs">
+                          <span className="font-medium">{addOn.name}</span>
+                          <span className="font-semibold text-accent">+${addOn.price}</span>
                         </div>
-                      </Badge>
+                      ))}
                     </div>
                   </div>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Client Name</Label>
-                      <p className="text-lg font-semibold">{selectedBooking.client_name}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                      <p className="text-lg">{selectedBooking.client_email}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
-                      <p className="text-lg">{selectedBooking.client_phone}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Confirmation #</Label>
-                      <p className="text-lg font-mono">{selectedBooking.confirmation_number}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Created</Label>
-                    <p>{format(parseISO(selectedBooking.created_at), 'PPP p')}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Last Updated</Label>
-                    <p>{format(parseISO(selectedBooking.updated_at), 'PPP p')}</p>
-                  </div>
-                </div>
-                
-                {selectedBooking.notes && (
-                  <>
-                    <Separator />
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Client Notes</Label>
-                      <div className="mt-2 p-3 bg-muted rounded-md">
-                        <p className="text-sm">{selectedBooking.notes}</p>
-                      </div>
-                    </div>
-                  </>
                 )}
-                
-                <div className="flex space-x-3 pt-4">
+
+                <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                  <span>Created {format(parseISO(selectedBooking.created_at), 'PPP p')}</span>
+                  <span>Updated {format(parseISO(selectedBooking.updated_at), 'PPP p')}</span>
+                </div>
+
+                <div className="flex space-x-3 pt-2">
                   <Button
                     onClick={() => window.open(`mailto:${selectedBooking.client_email}?subject=Regarding your appointment on ${format(parseISO(selectedBooking.appointment_date), 'PPP')}`)}
                     className="flex-1"
@@ -1000,32 +1189,69 @@ const AdminBookings = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Edit Notes Dialog */}
+        {/* Edit Client Information Dialog */}
         <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle className="font-heading text-xl">
-                Edit Booking Notes
+              <DialogTitle className="font-heading text-xl flex items-center gap-2">
+                <Users size={18} className="text-accent" />
+                Edit Client Information
               </DialogTitle>
             </DialogHeader>
             {editingBooking && (
               <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">
-                    Booking: {editingBooking.service_name} - {editingBooking.client_name}
-                  </Label>
+                <div className="text-xs text-muted-foreground">
+                  Appointment: <span className="font-medium text-foreground">{getServiceDisplayName(editingBooking)}</span> · #{editingBooking.confirmation_number}
                 </div>
-                <div>
-                  <Label htmlFor="admin-notes">Admin Notes</Label>
-                  <Textarea
-                    id="admin-notes"
-                    value={adminNotes}
-                    onChange={(e) => setAdminNotes(e.target.value)}
-                    placeholder="Add internal notes about this booking..."
-                    rows={4}
+
+                {/* Full Name */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="client-name" className="text-xs font-medium">Full Name</Label>
+                  <Input
+                    id="client-name"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    placeholder="Client's full name"
                   />
                 </div>
-                <div className="flex justify-end space-x-3">
+
+                {/* Phone */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="client-phone" className="text-xs font-medium">Phone Number</Label>
+                  <Input
+                    id="client-phone"
+                    type="tel"
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(e.target.value)}
+                    placeholder="+1 737-378-5755"
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="client-email" className="text-xs font-medium">Email Address</Label>
+                  <Input
+                    id="client-email"
+                    type="email"
+                    value={clientEmail}
+                    onChange={(e) => setClientEmail(e.target.value)}
+                    placeholder="client@example.com"
+                  />
+                </div>
+
+                {/* Notes */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="client-notes" className="text-xs font-medium">Client Notes</Label>
+                  <Textarea
+                    id="client-notes"
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder="Allergies, preferences, special requests…"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-2">
                   <Button
                     variant="outline"
                     onClick={() => setIsEditOpen(false)}
@@ -1034,7 +1260,12 @@ const AdminBookings = () => {
                   </Button>
                   <Button
                     onClick={() => {
-                      updateBookingNotes(editingBooking.id, adminNotes);
+                      updateBookingClientInfo(editingBooking.id, {
+                        name: clientName,
+                        email: clientEmail,
+                        phone: clientPhone,
+                        notes: adminNotes,
+                      });
                       setIsEditOpen(false);
                     }}
                     disabled={isUpdating}
@@ -1042,10 +1273,10 @@ const AdminBookings = () => {
                     {isUpdating ? (
                       <>
                         <RefreshCw className="animate-spin mr-2" size={16} />
-                        Saving...
+                        Saving…
                       </>
                     ) : (
-                      'Save Notes'
+                      'Save Client Info'
                     )}
                   </Button>
                 </div>

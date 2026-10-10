@@ -20,6 +20,18 @@ export interface StudioLocationConfig {
   separateEmailDelay: number;
 }
 
+export interface BookingPolicySection {
+  title: string;
+  items: string[];
+}
+
+export interface BookingPoliciesText {
+  deposit_payment: BookingPolicySection;
+  cancellation: BookingPolicySection;
+  guarantee: BookingPolicySection;
+  health_safety: BookingPolicySection;
+}
+
 const DEFAULT_ADMIN_EMAIL_CONFIGS: AdminEmailConfig[] = [
   {
     id: '1',
@@ -42,10 +54,49 @@ const DEFAULT_LOCATION_CONFIG: StudioLocationConfig = {
   separateEmailDelay: 24,
 };
 
+const DEFAULT_BOOKING_POLICIES: BookingPoliciesText = {
+  deposit_payment: {
+    title: 'Deposits & Payment',
+    items: [
+      'A $30 deposit is required to secure your appointment.',
+      'Cash and Zelle payments are accepted.',
+      'Tips are appreciated but not required.',
+    ],
+  },
+  cancellation: {
+    title: 'Cancellation Policy',
+    items: [
+      '48-hour notice required for cancellations',
+      'Same-day cancellations forfeit deposit',
+      'Late arrivals may result in shortened service',
+    ],
+  },
+  guarantee: {
+    title: 'Service Guarantee',
+    items: [
+      '✅ 1-week guarantee on all services.',
+    ],
+  },
+  health_safety: {
+    title: 'Health & Safety',
+    items: [
+      'Please reschedule if feeling unwell',
+      'All tools are sanitized and sterilized',
+      'Allergic reactions: please inform before service',
+    ],
+  },
+};
+
+const DEFAULT_SERVICE_PAGE_CUSTOM_TEXT = 'Final pricing for nail art is determined based on complexity and design detail. Book your consultation to discuss your vision and receive an accurate quote.';
+
+const DEFAULT_SERVICE_NOTE_PRICING = '💫 Important Note: Final prices may vary depending on nail length, complexity level, and type of design requested.';
+
+const DEFAULT_SERVICE_NOTE_HAND_TREATMENT = '🌸 Note: All our hand services include a free paraffin treatment to hydrate and soften the skin. 💆‍♀';
+
 const DEFAULT_STUDIO_INFO = {
   studio_name: 'Francis Lozano Studio',
-  studio_phone: '(615) 555-NAIL',
-  studio_email: 'hello@francislozanostudio.com',
+  studio_phone: '(+1 737-378-5755',
+  studio_email: 'francislozanostudio@gmail.com',
   website_url: 'https://francislozanostudio.com',
 };
 
@@ -137,6 +188,10 @@ type StudioSettingsRow = {
   updated_at: string;
   admin_email_configs: AdminEmailConfig[] | null;
   location_config: StudioLocationConfig | null;
+  booking_policies_text: BookingPoliciesText | null;
+  service_page_custom_text: string | null;
+  service_note_pricing: string | null;
+  service_note_hand_treatment: string | null;
 };
 
 export interface StudioSettings {
@@ -149,6 +204,10 @@ export interface StudioSettings {
   updated_at: string;
   admin_email_configs: AdminEmailConfig[];
   location_config: StudioLocationConfig;
+  booking_policies_text: BookingPoliciesText;
+  service_page_custom_text: string;
+  service_note_pricing: string;
+  service_note_hand_treatment: string;
 }
 
 export interface UpdateStudioSettingsInput {
@@ -158,6 +217,10 @@ export interface UpdateStudioSettingsInput {
   website_url?: string;
   admin_email_configs?: AdminEmailConfig[];
   location_config?: StudioLocationConfig;
+  booking_policies_text?: BookingPoliciesText;
+  service_page_custom_text?: string;
+  service_note_pricing?: string;
+  service_note_hand_treatment?: string;
 }
 
 const mapStudioSettings = (record: StudioSettingsRow): StudioSettings => {
@@ -177,6 +240,10 @@ const mapStudioSettings = (record: StudioSettingsRow): StudioSettings => {
     updated_at: record.updated_at,
     admin_email_configs: sanitizedEmails,
     location_config: mergeLocationWithDefaults(record.location_config),
+    booking_policies_text: record.booking_policies_text || DEFAULT_BOOKING_POLICIES,
+    service_page_custom_text: record.service_page_custom_text || DEFAULT_SERVICE_PAGE_CUSTOM_TEXT,
+    service_note_pricing: record.service_note_pricing || DEFAULT_SERVICE_NOTE_PRICING,
+    service_note_hand_treatment: record.service_note_hand_treatment || DEFAULT_SERVICE_NOTE_HAND_TREATMENT,
   } satisfies StudioSettings;
 };
 
@@ -237,6 +304,22 @@ export const updateStudioSettings = async (updates: UpdateStudioSettingsInput): 
       updatePayload.location_config = sanitizeLocationConfig(updates.location_config);
     }
 
+    if (updates.booking_policies_text !== undefined) {
+      updatePayload.booking_policies_text = updates.booking_policies_text;
+    }
+
+    if (updates.service_page_custom_text !== undefined) {
+      updatePayload.service_page_custom_text = updates.service_page_custom_text;
+    }
+
+    if (updates.service_note_pricing !== undefined) {
+      updatePayload.service_note_pricing = updates.service_note_pricing;
+    }
+
+    if (updates.service_note_hand_treatment !== undefined) {
+      updatePayload.service_note_hand_treatment = updates.service_note_hand_treatment;
+    }
+
     if (existingSettings) {
       const { data, error } = await supabase
         .from('studio_settings')
@@ -263,6 +346,10 @@ export const updateStudioSettings = async (updates: UpdateStudioSettingsInput): 
       location_config: sanitizeLocationConfig(
         updates.location_config ?? createDefaultLocationConfig(),
       ),
+      booking_policies_text: updates.booking_policies_text ?? DEFAULT_BOOKING_POLICIES,
+      service_page_custom_text: updates.service_page_custom_text ?? DEFAULT_SERVICE_PAGE_CUSTOM_TEXT,
+      service_note_pricing: updates.service_note_pricing ?? DEFAULT_SERVICE_NOTE_PRICING,
+      service_note_hand_treatment: updates.service_note_hand_treatment ?? DEFAULT_SERVICE_NOTE_HAND_TREATMENT,
       updated_at: timestamp,
     };
 
@@ -303,6 +390,10 @@ export const ensureSingleStudioSettings = async (): Promise<StudioSettings | nul
           ...DEFAULT_STUDIO_INFO,
           admin_email_configs: sanitizeAdminEmailConfigs(createDefaultAdminEmailConfigs()),
           location_config: sanitizeLocationConfig(createDefaultLocationConfig()),
+          booking_policies_text: DEFAULT_BOOKING_POLICIES,
+          service_page_custom_text: DEFAULT_SERVICE_PAGE_CUSTOM_TEXT,
+          service_note_pricing: DEFAULT_SERVICE_NOTE_PRICING,
+          service_note_hand_treatment: DEFAULT_SERVICE_NOTE_HAND_TREATMENT,
           updated_at: timestamp,
         })
         .select()
@@ -332,6 +423,10 @@ export const ensureSingleStudioSettings = async (): Promise<StudioSettings | nul
           location_config: sanitizeLocationConfig(
             mostRecentRow.location_config ?? createDefaultLocationConfig(),
           ),
+          booking_policies_text: mostRecentRow.booking_policies_text ?? DEFAULT_BOOKING_POLICIES,
+          service_page_custom_text: mostRecentRow.service_page_custom_text ?? DEFAULT_SERVICE_PAGE_CUSTOM_TEXT,
+          service_note_pricing: mostRecentRow.service_note_pricing ?? DEFAULT_SERVICE_NOTE_PRICING,
+          service_note_hand_treatment: mostRecentRow.service_note_hand_treatment ?? DEFAULT_SERVICE_NOTE_HAND_TREATMENT,
           updated_at: timestamp,
         })
         .eq('id', mostRecentRow.id)

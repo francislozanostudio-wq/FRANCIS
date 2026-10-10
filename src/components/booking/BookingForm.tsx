@@ -157,7 +157,7 @@ export function BookingForm() {
                     <FormControl>
                       <Input 
                         type="tel"
-                        placeholder="(615) 555-0123" 
+                        placeholder="+1 737-378-5755" 
                         {...field} 
                         className="bg-background/80 border-input hover:border-accent transition-all duration-200 focus:bg-background"
                       />

@@ -29,8 +29,8 @@ INSERT INTO studio_settings (
 )
 SELECT 
   'Francis Lozano Studio',
-  '(615) 555-NAIL',
-  'hello@francislozanostudio.com',
+  '(+1 737-378-5755',
+  'francislozanostudio@gmail.com',
   'https://francislozanostudio.com'
 WHERE NOT EXISTS (SELECT 1 FROM studio_settings);
 

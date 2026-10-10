@@ -14,6 +14,8 @@ export interface BookingEmailData {
     client_phone: string;
     confirmation_number: string;
     notes?: string;
+    selected_add_ons?: any[];
+    add_ons_total?: number;
   };
   hoursUntilAppointment?: number;
   adminEmail?: string;

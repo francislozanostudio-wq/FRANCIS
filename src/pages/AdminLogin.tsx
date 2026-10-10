@@ -222,7 +222,7 @@ const AdminLogin = () => {
                               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
                               <Input
                                 type="email"
-                                placeholder="admin@francislozanostudio.com"
+                                placeholder="admin@francis_lozano_studio.com"
                                 className="pl-10 bg-background border-input hover:border-accent focus:bg-background"
                                 {...field}
                               />

@@ -169,7 +169,7 @@ export function EmailTemplateEditor({ template, onSave, onCancel }: EmailTemplat
       service_price: '85',
       confirmation_number: 'FNA-ABC123',
       client_notes: 'Looking for elegant winter design with gold accents',
-      studio_phone: '(615) 555-NAIL',
+      studio_phone: '(+1 737-378-5755',
       studio_address: 'Private Studio, Nashville TN',
       studio_full_address: '123 Studio Lane\nNashville, TN 37XXX',
       parking_instructions: 'Free parking available on-site',

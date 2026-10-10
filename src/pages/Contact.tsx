@@ -1,4 +1,12 @@
 import { MapPin, Phone, Mail, Instagram, Clock, MessageCircle } from 'lucide-react';
+import { SiTiktok } from 'react-icons/si'; // TikTok brand icon
+import type { LucideProps } from 'lucide-react';
+
+// Adapter component so react-icons matches the expected signature of lucide icons
+const TikTokIcon = (props: LucideProps) => {
+  const { size = 24, color = 'currentColor', className, ...rest } = props;
+  return <SiTiktok size={size} color={color} className={className} {...rest} />;
+};
 import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -15,25 +23,26 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { getStudioSettings, subscribeToStudioSettings, type StudioSettings } from '@/lib/studioService';
-import { useTranslations } from '@/lib/translations';
-
-const ContactFormSchema = z.object({
-  firstName: z.string().min(2, { message: 'First name must be at least 2 characters.' }),
-  lastName: z.string().min(2, { message: 'Last name must be at least 2 characters.' }),
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
-  phone: z.string().optional(),
-  inquiryType: z.string().min(1, { message: 'Please select an inquiry type.' }),
-  subject: z.string().min(5, { message: 'Subject must be at least 5 characters.' }),
-  message: z.string().min(10, { message: 'Message must be at least 10 characters.' }),
-});
-
-type ContactFormData = z.infer<typeof ContactFormSchema>;
+import { useTranslations, t as translate } from '@/lib/translations';
 
 const Contact = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [studioSettings, setStudioSettings] = useState<StudioSettings | null>(null);
   const { toast } = useToast();
-  const { t } = useTranslations();
+  const { t, language, translateByText } = useTranslations();
+
+  // Create schema with translations inside component
+  const ContactFormSchema = z.object({
+    firstName: z.string().min(2, { message: t('contact.validation.first_name_min', 'First name must be at least 2 characters.') }),
+    lastName: z.string().min(2, { message: t('contact.validation.last_name_min', 'Last name must be at least 2 characters.') }),
+    email: z.string().email({ message: t('contact.validation.email_valid', 'Please enter a valid email address.') }),
+    phone: z.string().optional(),
+    inquiryType: z.string().min(1, { message: t('contact.validation.inquiry_type_required', 'Please select an inquiry type.') }),
+    subject: z.string().min(5, { message: t('contact.validation.subject_min', 'Subject must be at least 5 characters.') }),
+    message: z.string().min(10, { message: t('contact.validation.message_min', 'Message must be at least 10 characters.') }),
+  });
+
+  type ContactFormData = z.infer<typeof ContactFormSchema>;
 
   useEffect(() => {
     // Load initial studio settings
@@ -71,52 +80,59 @@ const Contact = () => {
   const contactMethods = [
     {
       icon: Phone,
-      title: 'Call or Text',
-      details: studioSettings?.studio_phone || '(615) 555-NAIL',
-      description: 'Quickest way to reach me for urgent questions or booking',
-      action: `tel:${(studioSettings?.studio_phone || '(615) 555-NAIL').replace(/\D/g, '')}`
+      title: t('contact.method.call_text', 'Call or Text'),
+      details: studioSettings?.studio_phone || '(+1 737-378-5755',
+      description: t('contact.method.call_description', 'Quickest way to reach me for urgent questions or booking'),
+      action: `tel:${(studioSettings?.studio_phone || '(+1 737-378-5755').replace(/\D/g, '')}`
     },
     {
       icon: Mail,
-      title: 'Email',
-      details: studioSettings?.studio_email || 'hello@francislozanostudio.com',
-      description: 'Best for detailed inquiries, custom design consultations',
-      action: `mailto:${studioSettings?.studio_email || 'hello@francislozanostudio.com'}`
+      title: t('contact.method.email', 'Email'),
+      details: studioSettings?.studio_email || 'francislozanostudio@gmail.com',
+      description: t('contact.method.email_description', 'Best for detailed inquiries, custom design consultations'),
+      action: `mailto:${studioSettings?.studio_email || 'francislozanostudio@gmail.com'}`
     },
     {
       icon: Instagram,
-      title: 'Instagram DM',
+      title: t('contact.method.instagram', 'Instagram DM'),
+      details: '@francis_lozano_studio',
+      description: t('contact.method.instagram_description', 'Follow for daily inspiration and behind-the-scenes content'),
+      action: 'https://instagram.com/francis_lozano_studio'
+    },
+    {
+  icon: TikTokIcon,
+      title: t('contact.method.tiktok', 'TikTok'),
       details: '@francislozanostudio',
-      description: 'Follow for daily inspiration and behind-the-scenes content',
-      action: 'https://instagram.com/francislozanostudio'
+      description: t('contact.method.tiktok_description', 'Follow for creative nail art videos and tutorials'),
+      action: 'https://www.tiktok.com/@francislozanostudio'
     },
     {
       icon: MessageCircle,
-      title: 'Text Message',
-      details: studioSettings?.studio_phone || '(615) 555-NAIL',
-      description: 'Quick questions, appointment confirmations, or last-minute changes',
-      action: `sms:${(studioSettings?.studio_phone || '(615) 555-NAIL').replace(/\D/g, '')}`
+      title: t('contact.method.whatsapp', 'WhatsApp'),
+      details: studioSettings?.studio_phone || '(+1 737-378-5755',
+      description: t('contact.method.whatsapp_description', 'Quick questions, appointment confirmations, or last-minute changes'),
+      action: 'https://wa.me/qr/I3MGCHO4PKPIN1'
     }
   ];
 
   const businessHours = [
-    { day: 'Monday', hours: 'By Appointment' },
-    { day: 'Tuesday', hours: '10:00 AM - 6:00 PM' },
-    { day: 'Wednesday', hours: '10:00 AM - 6:00 PM' },
-    { day: 'Thursday', hours: '10:00 AM - 7:00 PM' },
-    { day: 'Friday', hours: '10:00 AM - 7:00 PM' },
-    { day: 'Saturday', hours: '9:00 AM - 5:00 PM' },
-    { day: 'Sunday', hours: 'Closed' }
+    { day: t('contact.days.monday', 'Monday'), hours: '7:00 AM - 5:00 PM' },
+    { day: t('contact.days.tuesday', 'Tuesday'), hours: '7:00 AM - 5:00 PM' },
+    { day: t('contact.days.wednesday', 'Wednesday'), hours: '7:00 AM - 5:00 PM' },
+    { day: t('contact.days.thursday', 'Thursday'), hours: '7:00 AM - 5:00 PM' },
+    { day: t('contact.days.friday', 'Friday'), hours: '7:00 AM - 5:00 PM' },
+    { day: t('contact.days.saturday', 'Saturday'), hours: '7:00 AM - 5:00 PM' },
+    { day: t('contact.days.sunday', 'Sunday'), hours: t('contact.closed', 'Closed') }
   ];
 
   const inquiryTypes = [
-    'New Client Consultation',
-    'Custom Design Project',
-    'Wedding/Event Services',
-    'Collaboration Inquiry',
-    'Media/Press Request',
-    'General Question',
-    'Other'
+    t('contact.inquiry.new_client', 'New Client Consultation'),
+    t('contact.inquiry.custom_design', 'Custom Design Project'),
+    t('contact.inquiry.wedding_event', 'Wedding/Event Services'),
+    t('contact.inquiry.collaboration', 'Collaboration Inquiry'),
+    t('contact.inquiry.media_press', 'Media/Press Request'),
+    t('contact.inquiry.general', 'General Question'),
+    t('contact.inquiry.other', 'Other')
   ];
 
   const onSubmit = async (data: ContactFormData) => {
@@ -139,8 +155,8 @@ const Contact = () => {
       if (error) {
         console.error('Error submitting contact form:', error);
         toast({
-          title: 'Error',
-          description: 'Failed to send your message. Please try again or contact us directly.',
+          title: t('contact.toast.error', 'Error'),
+          description: t('contact.toast.failed_send', 'Failed to send your message. Please try again or contact us directly.'),
           variant: 'destructive',
         });
         return;
@@ -208,15 +224,15 @@ const Contact = () => {
       form.reset();
       
       toast({
-        title: 'Message Sent!',
-        description: 'Thank you for your message. We\'ll get back to you within 24 hours.',
+        title: t('contact.toast.success', 'Message Sent!'),
+        description: t('contact.toast.success_description', 'Thank you for your message. We\'ll get back to you within 24 hours.'),
       });
 
     } catch (error) {
       console.error('Unexpected error:', error);
       toast({
-        title: 'Error',
-        description: 'An unexpected error occurred. Please try again.',
+        title: t('contact.toast.error', 'Error'),
+        description: t('contact.toast.unexpected_error', 'An unexpected error occurred. Please try again.'),
         variant: 'destructive',
       });
     } finally {
@@ -247,7 +263,7 @@ const Contact = () => {
               {t('contact.how_to_reach', 'How to Reach Me')}
             </h2>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-              Choose the method that works best for you. I typically respond within 24 hours.
+              {t('contact.reach_description', 'Choose the method that works best for you. I typically respond within 24 hours.')}
             </p>
           </div>
 
@@ -269,7 +285,7 @@ const Contact = () => {
                   </p>
                   <Button asChild variant="outline" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground">
                     <a href={method.action} target={method.action.startsWith('http') ? '_blank' : '_self'}>
-                      Contact Now
+                      {t('contact.contact_now', 'Contact Now')}
                     </a>
                   </Button>
                 </CardContent>
@@ -288,13 +304,13 @@ const Contact = () => {
                 {t('contact.send_message', 'Send a Message')}
               </h2>
               <p className="text-lg text-muted-foreground">
-                Prefer to write? Use the form below for detailed inquiries or custom project discussions.
+                {t('contact.form_description', 'Prefer to write? Use the form below for detailed inquiries or custom project discussions.')}
               </p>
             </div>
 
             <Card className="bg-card border-border">
               <CardHeader>
-                <CardTitle className="font-heading text-2xl text-center">Contact Form</CardTitle>
+                <CardTitle className="font-heading text-2xl text-center">{t('contact.form_title', 'Contact Form')}</CardTitle>
               </CardHeader>
               <CardContent className="p-8">
                 <Form {...form}>
@@ -305,9 +321,9 @@ const Contact = () => {
                         name="firstName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>First Name *</FormLabel>
+                            <FormLabel>{t('contact.form.first_name', 'First Name')} *</FormLabel>
                             <FormControl>
-                              <Input placeholder="Your first name" {...field} />
+                              <Input placeholder={t('contact.form.first_name_placeholder', 'Your first name')} {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -318,9 +334,9 @@ const Contact = () => {
                         name="lastName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Last Name *</FormLabel>
+                            <FormLabel>{t('contact.form.last_name', 'Last Name')} *</FormLabel>
                             <FormControl>
-                              <Input placeholder="Your last name" {...field} />
+                              <Input placeholder={t('contact.form.last_name_placeholder', 'Your last name')} {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -334,9 +350,9 @@ const Contact = () => {
                         name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Email Address *</FormLabel>
+                            <FormLabel>{t('contact.form.email', 'Email Address')} *</FormLabel>
                             <FormControl>
-                              <Input type="email" placeholder="your@email.com" {...field} />
+                              <Input type="email" placeholder={t('contact.form.email_placeholder', 'your@email.com')} {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -347,9 +363,9 @@ const Contact = () => {
                         name="phone"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Phone Number</FormLabel>
+                            <FormLabel>{t('contact.form.phone', 'Phone Number')}</FormLabel>
                             <FormControl>
-                              <Input type="tel" placeholder="(615) 555-0123" {...field} />
+                              <Input type="tel" placeholder={t('contact.form.phone_placeholder', '+1 737-378-5755')} {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -362,11 +378,11 @@ const Contact = () => {
                       name="inquiryType"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Inquiry Type *</FormLabel>
+                          <FormLabel>{t('contact.form.inquiry_type', 'Inquiry Type')} *</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select inquiry type" />
+                                <SelectValue placeholder={t('contact.form.inquiry_type_placeholder', 'Select inquiry type')} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -385,9 +401,9 @@ const Contact = () => {
                       name="subject"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Subject *</FormLabel>
+                          <FormLabel>{t('contact.form.subject', 'Subject')} *</FormLabel>
                           <FormControl>
-                            <Input placeholder="Brief description of your inquiry" {...field} />
+                            <Input placeholder={t('contact.form.subject_placeholder', 'Brief description of your inquiry')} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -399,10 +415,10 @@ const Contact = () => {
                       name="message"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Message *</FormLabel>
+                          <FormLabel>{t('contact.form.message', 'Message')} *</FormLabel>
                           <FormControl>
                             <Textarea 
-                              placeholder="Tell me about your vision, questions, or how I can help you..."
+                              placeholder={t('contact.form.message_placeholder', 'Tell me about your vision, questions, or how I can help you...')}
                               rows={6}
                               {...field}
                             />
@@ -422,12 +438,12 @@ const Contact = () => {
                         {isSubmitting ? (
                           <>
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                            Sending...
+                            {t('contact.form.sending', 'Sending...')}
                           </>
                         ) : (
                           <>
                             <Mail className="mr-2" size={20} />
-                            Send Message
+                            {t('contact.form.send_message', 'Send Message')}
                           </>
                         )}
                       </Button>
@@ -449,7 +465,7 @@ const Contact = () => {
               <CardHeader>
                 <CardTitle className="font-heading text-2xl flex items-center">
                   <Clock className="mr-3 text-accent" size={24} />
-                  Studio Hours
+                  {t('contact.studio_hours', 'Studio Hours')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -463,8 +479,7 @@ const Contact = () => {
                 </div>
                 <div className="mt-6 p-4 bg-secondary rounded-lg">
                   <p className="text-sm text-muted-foreground">
-                    <strong>Note:</strong> All appointments are by reservation only. 
-                    Walk-ins are not available to ensure each client receives dedicated attention.
+                    <strong>{t('contact.hours_note', 'Note:')}</strong> {t('contact.hours_note_text', 'Lunch break from 1:00 PM - 2:00 PM daily. All appointments are by reservation only to ensure each client receives dedicated attention.')}
                   </p>
                 </div>
               </CardContent>
@@ -475,32 +490,31 @@ const Contact = () => {
               <CardHeader>
                 <CardTitle className="font-heading text-2xl flex items-center">
                   <MapPin className="mr-3 text-accent" size={24} />
-                  Studio Location
+                  {t('contact.studio_location', 'Studio Location')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-semibold text-card-foreground mb-2">Nashville, Tennessee</h4>
+                    <h4 className="font-semibold text-card-foreground mb-2">{t('contact.location.city', 'Nashville, Tennessee')}</h4>
                     <p className="text-muted-foreground">
-                      Private home studio in a convenient Nashville location. 
-                      Full address provided upon booking confirmation for privacy and security.
+                      {t('contact.location.description', 'Nashboro Village, Nashville Tennessee, 37217. La dirección exacta de envía luego de realizar la reserva para mayor privacidad y seguridad.')}
                     </p>
                   </div>
                   
                   <div className="bg-secondary p-4 rounded-lg">
-                    <h5 className="font-semibold text-card-foreground mb-2">Getting Here</h5>
+                    <h5 className="font-semibold text-card-foreground mb-2">{t('contact.location.getting_here', 'Getting Here')}</h5>
                     <ul className="text-sm text-muted-foreground space-y-1">
-                      <li>• Easily accessible from downtown Nashville</li>
-                      <li>• Free parking available on-site</li>
-                      <li>• Detailed directions sent with confirmation</li>
-                      <li>• Please arrive 5 minutes early for check-in</li>
+                      <li>• {t('contact.location.accessible', 'Easily accessible from downtown Nashville')}</li>
+                      <li>• {t('contact.location.parking', 'Free parking available on-site')}</li>
+                      <li>• {t('contact.location.directions', 'Detailed directions sent with confirmation')}</li>
+                      <li>• {t('contact.location.arrive_early', 'Please arrive 5 minutes early for check-in')}</li>
                     </ul>
                   </div>
 
                   <div>
                     <Button asChild className="w-full bg-gradient-gold hover:bg-gradient-gold/90 text-luxury-black font-semibold">
-                      <Link to="/booking">Book to Get Address</Link>
+                      <Link to="/booking">{t('contact.location.book_address', 'Book to Get Address')}</Link>
                     </Button>
                   </div>
                 </div>
@@ -514,20 +528,20 @@ const Contact = () => {
       <section className="py-20 bg-luxury-black text-pure-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="font-heading text-3xl md:text-4xl font-bold mb-6">
-            Looking for Something Specific?
+            {t('contact.faq.title', 'Looking for Something Specific?')}
           </h2>
           <p className="text-xl mb-8 max-w-3xl mx-auto">
-            Need quick answers? Check out these helpful resources or reach out directly.
+            {t('contact.faq.description', 'Need quick answers? Check out these helpful resources or reach out directly.')}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             <Button asChild variant="outline" size="lg" className="border-gold text-gold hover:bg-gold hover:text-luxury-black">
-              <Link to="/services">Services & Pricing</Link>
+              <Link to="/services">{t('contact.faq.services_pricing', 'Services & Pricing')}</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="border-gold text-gold hover:bg-gold hover:text-luxury-black">
-              <Link to="/booking">Booking Policies</Link>
+              <Link to="/booking">{t('contact.faq.booking_policies', 'Booking Policies')}</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="border-gold text-gold hover:bg-gold hover:text-luxury-black">
-              <Link to="/gallery">View Portfolio</Link>
+              <Link to="/gallery">{t('contact.faq.view_portfolio', 'View Portfolio')}</Link>
             </Button>
           </div>
         </div>
